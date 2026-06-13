@@ -64,7 +64,7 @@ Arquivo:
 ## Configuração
 
 ```text
-/etc/minion/config.yaml
+/etc/minion/config.json
 ```
 
 ## Porta padrão
@@ -144,6 +144,10 @@ Exemplos:
 Persistência local.
 
 SQLite.
+
+## Audit Logging
+
+All HTTP requests are stored in the `audit` SQLite table with fields client, ip, method, path, status.
 
 ---
 
@@ -498,7 +502,7 @@ STATUS=200
 
 ```text
 /etc/minion/
-├── config.yaml
+├── config.json
 
 /opt/minion/
 ├── minion.db

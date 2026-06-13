@@ -1,10 +1,12 @@
 package storage
 
 import (
-	"database/sql"
-	"fmt"
+    "database/sql"
+    "fmt"
+    "os"
+    "path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
+    _ "github.com/mattn/go-sqlite3"
 )
 
 type Storage struct {
@@ -12,10 +14,20 @@ type Storage struct {
 }
 
 func New(path string) (*Storage, error) {
-	db, err := sql.Open("sqlite3", path)
-	if err != nil {
-		return nil, err
-	}
+    // Ensure the directory for the SQLite file exists. The caller may provide
+    // a path like "/opt/minion/minion.db" where the parent directory does not
+    // exist on a fresh system. We create the directory with permissions 0755
+    // before opening the database.
+    if dir := filepath.Dir(path); dir != "." && dir != "" {
+        if err := os.MkdirAll(dir, 0o755); err != nil {
+            return nil, fmt.Errorf("failed to create DB directory %s: %w", dir, err)
+        }
+    }
+
+    db, err := sql.Open("sqlite3", path)
+    if err != nil {
+        return nil, err
+    }
 
 	if _, err := db.Exec(`PRAGMA journal_mode = WAL;`); err != nil {
 		return nil, fmt.Errorf("failed to set journal mode: %w", err)

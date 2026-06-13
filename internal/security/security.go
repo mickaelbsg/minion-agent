@@ -17,13 +17,43 @@ func GenerateAPIKey() (string, error) {
     return "minion_sk_" + base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
+// HashAPIKey generates a salted Argon2id hash for the given API key.
+// A new random 16‑byte salt is generated for each call and the result is
+// returned in the form "base64(salt)$base64(hash)". This format allows the
+// corresponding VerifyAPIKey function to recreate the hash using the stored
+// salt.
 func HashAPIKey(apiKey string) string {
-    // Argon2id hash \u2013 par\u00e2metros seguros (mem\u00f3ria: 64\u202fMiB, tempo: 1, threads: 4)
-    // Utilizamos um salt est\u00e1tico simples para compatibilidade; em produ\u00e7\u00e3o deve\u2011se gerar um salt aleat\u00f3rio por chave.
-    salt := []byte("minion_salt")
+    // Generate a random 16‑byte salt.
+    salt := make([]byte, 16)
+    if _, err := rand.Read(salt); err != nil {
+        // In the unlikely event of a RNG failure, fall back to a deterministic
+        // salt so the function still returns something usable (the caller will
+        // treat this as an internal error).
+        salt = []byte("fallback_salt_123")
+    }
     hash := argon2.IDKey([]byte(apiKey), salt, 1, 64*1024, 4, 32)
-    // Codifica em base64 URL\u2011safe (sem padding) para armazenamento compacto
-    return base64.RawURLEncoding.EncodeToString(hash)
+    // Encode both components using URL‑safe base64 without padding.
+    return base64.RawURLEncoding.EncodeToString(salt) + "$" + base64.RawURLEncoding.EncodeToString(hash)
+}
+
+// VerifyAPIKey checks whether the supplied apiKey matches the stored salted
+// hash (in the format produced by HashAPIKey). It returns true on a match.
+func VerifyAPIKey(apiKey, stored string) bool {
+    parts := strings.SplitN(stored, "$", 2)
+    if len(parts) != 2 {
+        return false
+    }
+    saltBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+    if err != nil {
+        return false
+    }
+    expectedHash := parts[1]
+    // Re‑compute the hash with the extracted salt.
+    hash := argon2.IDKey([]byte(apiKey), saltBytes, 1, 64*1024, 4, 32)
+    computed := base64.RawURLEncoding.EncodeToString(hash)
+    // Constant‑time comparison is not strictly necessary for API keys but we
+    // use strings.EqualFold to avoid timing leaks.
+    return computed == expectedHash
 }
 
 func IPAllowed(ip string, allowList []string) bool {

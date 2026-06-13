@@ -24,16 +24,21 @@ func New(cfg *config.Config, storage *storage.Storage) *Server {
 }
 
 func (s *Server) Start() error {
+    // Register routes with audit logging. The audit middleware records each
+    // request (timestamp handled by the DB, client name when authenticated, IP,
+    // HTTP method, path and response status).
     mux := http.NewServeMux()
-    mux.HandleFunc("/api/v1/health", s.handleHealth)
-    mux.HandleFunc("/api/v1/system", s.auth(s.handleSystem))
-    mux.HandleFunc("/api/v1/users", s.auth(s.handleUsers))
-    mux.HandleFunc("/api/v1/services", s.auth(s.handleServices))
-    mux.HandleFunc("/api/v1/fail2ban", s.auth(s.handleFail2Ban))
-    mux.HandleFunc("/api/v1/fail2ban/unban", s.auth(s.handleFail2BanUnban))
-    mux.HandleFunc("/api/v1/ipblock", s.auth(s.handleIPBlock))
-    mux.HandleFunc("/api/v1/wazuh", s.auth(s.handleWazuh))
-    mux.HandleFunc("/api/v1/logins", s.auth(s.handleLogins))
+    // Health endpoint does not require authentication.
+    mux.HandleFunc("/api/v1/health", s.audit(s.handleHealth))
+    // All other endpoints require auth, then audit.
+    mux.HandleFunc("/api/v1/system", s.audit(s.auth(s.handleSystem)))
+    mux.HandleFunc("/api/v1/users", s.audit(s.auth(s.handleUsers)))
+    mux.HandleFunc("/api/v1/services", s.audit(s.auth(s.handleServices)))
+    mux.HandleFunc("/api/v1/fail2ban", s.audit(s.auth(s.handleFail2Ban)))
+    mux.HandleFunc("/api/v1/fail2ban/unban", s.audit(s.auth(s.handleFail2BanUnban)))
+    mux.HandleFunc("/api/v1/ipblock", s.audit(s.auth(s.handleIPBlock)))
+    mux.HandleFunc("/api/v1/wazuh", s.audit(s.auth(s.handleWazuh)))
+    mux.HandleFunc("/api/v1/logins", s.audit(s.auth(s.handleLogins)))
 
     addr := s.cfg.API.Bind
     if addr == "" {
@@ -60,7 +65,7 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
             s.writeError(w, http.StatusUnauthorized, "missing authorization header")
             return
         }
-        hashed := security.HashAPIKey(apiKey)
+        // Verify the provided API key against the stored salted hash.
         var client *config.Client
         for i := range s.cfg.Clients {
             c := &s.cfg.Clients[i]
@@ -70,8 +75,10 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
             if !security.IPAllowed(host, c.AllowedIPs) {
                 continue
             }
-            if c.APIKeyHash == hashed {
+            if security.VerifyAPIKey(apiKey, c.APIKeyHash) {
                 client = c
+                // Store client name in request context for audit logging
+                r = withClientName(r, c.Name)
                 break
             }
         }
@@ -150,8 +157,23 @@ func (s *Server) handleFail2BanUnban(w http.ResponseWriter, r *http.Request) {
         s.writeError(w, http.StatusBadRequest, "invalid json payload")
         return
     }
-    if payload.IP == "" || payload.Jail == "" {
-        s.writeError(w, http.StatusBadRequest, "ip and jail are required")
+    // Validate IP address format.
+    if net.ParseIP(payload.IP) == nil {
+        s.writeError(w, http.StatusBadRequest, "invalid ip address")
+        return
+    }
+    // Validate jail name against a whitelist to prevent command injection.
+    // The whitelist can be extended as needed.
+    allowedJails := []string{"sshd", "apache-auth", "recidive"}
+    jailAllowed := false
+    for _, aj := range allowedJails {
+        if payload.Jail == aj {
+            jailAllowed = true
+            break
+        }
+    }
+    if !jailAllowed {
+        s.writeError(w, http.StatusBadRequest, "jail not allowed")
         return
     }
     // Execute fail2ban unban command

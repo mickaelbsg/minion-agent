@@ -1,0 +1,14 @@
+[Unit]
+Description=Minion Agent Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/minion --config /etc/minion/config.json
+Restart=on-failure
+User=pc
+Group=pc
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+
+[Install]
+WantedBy=multi-user.target
