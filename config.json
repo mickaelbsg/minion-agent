@@ -1,0 +1,14 @@
+{
+  "api": {
+    "bind": "0.0.0.0:9871"
+  },
+  "db_path": "/home/pc/minion/minion.db",
+  "clients": [
+    {
+      "name": "api_severino",
+      "allowed_ips": ["192.168.56.2/32","127.0.0.1/32","::1/128"],
+      "api_key_hash": "JtfrPYyrldMMxyvYtZscPcsUClyGQ7tAk7EnwzQi_qs",
+      "enabled": true
+    }
+  ]
+}

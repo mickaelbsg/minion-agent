@@ -5,6 +5,7 @@ import (
     "log"
     "net"
     "net/http"
+    "os/exec"
     "strings"
 
     "minion/internal/collectors"
@@ -29,6 +30,8 @@ func (s *Server) Start() error {
     mux.HandleFunc("/api/v1/users", s.auth(s.handleUsers))
     mux.HandleFunc("/api/v1/services", s.auth(s.handleServices))
     mux.HandleFunc("/api/v1/fail2ban", s.auth(s.handleFail2Ban))
+    mux.HandleFunc("/api/v1/fail2ban/unban", s.auth(s.handleFail2BanUnban))
+    mux.HandleFunc("/api/v1/ipblock", s.auth(s.handleIPBlock))
     mux.HandleFunc("/api/v1/wazuh", s.auth(s.handleWazuh))
     mux.HandleFunc("/api/v1/logins", s.auth(s.handleLogins))
 
@@ -118,6 +121,47 @@ func (s *Server) handleFail2Ban(w http.ResponseWriter, r *http.Request) {
         return
     }
     s.writeJSON(w, items)
+}
+
+func (s *Server) handleIPBlock(w http.ResponseWriter, r *http.Request) {
+    ip := r.URL.Query().Get("ip")
+    if ip == "" {
+        s.writeError(w, http.StatusBadRequest, "ip query parameter required")
+        return
+    }
+    blocked, err := collectors.IsIPBlocked(ip)
+    if err != nil {
+        s.writeError(w, http.StatusInternalServerError, err.Error())
+        return
+    }
+    s.writeJSON(w, map[string]bool{"blocked": blocked})
+}
+
+func (s *Server) handleFail2BanUnban(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+        return
+    }
+    var payload struct {
+        IP   string `json:"ip"`
+        Jail string `json:"jail"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+        s.writeError(w, http.StatusBadRequest, "invalid json payload")
+        return
+    }
+    if payload.IP == "" || payload.Jail == "" {
+        s.writeError(w, http.StatusBadRequest, "ip and jail are required")
+        return
+    }
+    // Execute fail2ban unban command
+    cmd := exec.Command("fail2ban-client", "set", payload.Jail, "unbanip", payload.IP)
+    out, err := cmd.CombinedOutput()
+    if err != nil {
+        s.writeError(w, http.StatusInternalServerError, string(out))
+        return
+    }
+    s.writeJSON(w, map[string]string{"status": "unbanned", "ip": payload.IP, "jail": payload.Jail})
 }
 
 func (s *Server) handleWazuh(w http.ResponseWriter, r *http.Request) {
