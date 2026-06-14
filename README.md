@@ -60,6 +60,26 @@ GET /api/v1/logins
 ```bash
 minion --create-client --name api_severino --ips 192.168.56.2/32
 ```
+## Comandos de configuração simplificados
+
+### `minion setup`
+
+Executa todas as etapas de preparação de uma instalação nova:
+- Cria o diretório `/etc/minion/tls` (se ainda não existir).
+- Gera um certificado TLS auto‑assinado (caso ainda não exista).
+- Copia o `config.example.json` para `/etc/minion/config.json` se o arquivo ainda não existir.
+- Habilita e inicia o serviço `minion.service` via `systemctl`.
+
+### `minion add client`
+
+Atalho para criar um cliente API (equivalente a `--create-client`).
+Exemplo:
+```bash
+sudo minion add client --name myclient --ips 0.0.0.0/0,::/0
+```
+
+Esses novos sub‑comandos foram implementados em `cmd/minion/main.go` e já estão disponíveis nos releases atuais.
+
 
 O comando imprime:
 
