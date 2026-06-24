@@ -6,57 +6,82 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Purpose | Command |
 |---|---|
-| Build the binary (Go) | `go build -o minion ./...` |
-| Run unit / integration tests (Go) | `go test ./...` |
-| Run a single test (Go) | `go test ./path/to/package -run TestName` |
-| Lint / static analysis (Go) | `go vet ./...` |
-| Format code (Go) | `gofmt -w .` |
-| Run the agent (systemd) | `systemctl start minion` |
-| Enable on boot (systemd) | `systemctl enable minion` |
-| View logs (systemd) | `journalctl -u minion -f` |
+| Build the Minion binary | `go build -o minion ./cmd/minion` |
+| Build all Go packages | `go build ./...` |
+| Run all tests | `go test ./...` |
+| Run tests with verbose output (CI style) | `go test ./... -v` |
+| Run a single test | `go test ./internal/package -run TestName` |
+| Run static checks used by CI | `golangci-lint run` |
+| Run Go vet | `go vet ./...` |
+| Format Go code | `gofmt -w .` |
+| Tidy modules | `go mod tidy` |
+| Build Debian package | `./build_deb.sh` |
+| Install locally | `sudo ./install.sh` or `sudo ./install_minion.sh` |
+| Run service | `sudo systemctl start minion` |
+| Enable service on boot | `sudo systemctl enable minion` |
+| View service logs | `journalctl -u minion -f` |
 
-> **Note:** The repository currently contains only specification documents. When source code is added, typical Go tooling (go.mod, source files under `cmd/` or `pkg/`) will be used. Adjust commands accordingly.
+CI runs `golangci-lint run`, `go test ./... -v`, and `go build ./cmd/minion`.
 
-## High‑Level Architecture
+## High-Level Architecture
 
-The Minion agent is a Go service running as a `systemd` unit. The main logical components (as described in `SPEC.md`):
+Minion is a Go Linux agent installed as a `systemd` service. It replaces recurring privileged SSH collection with a local authenticated HTTP API. It is not a remote shell, does not accept free-form commands, and does not embed AI or decision logic.
 
-1. **Collector Engine** – gathers local data (users, logins, sudo events, Fail2Ban, Wazuh, systemd services, host info, etc.).
-2. **Event Engine** – detects relevant changes and emits events for further processing.
-3. **Storage Engine** – persists collected data in a local SQLite database (`/opt/minion/minion.db`).
-4. **API Server** – HTTP API (`/api/v1/*`) providing authenticated access to collected data. Authentication uses an API key (Argon2id hash) and IP allow‑list defined in `/etc/minion/config.yaml`.
-5. **System Integration** – runs as a `systemd` service, exposing health (`GET /api/v1/health`) and other endpoints.
+Main source layout:
 
-```
-+----------------------+   HTTP API   +-------------------+
-|      Severino        |<------------|      Minion       |
-+----------+-----------+             +---------+---------+
-           |                               |
-           |  Collectors (users, logins, …) |
-           |                               |
-+----------v-----------+   SQLite   +-----v-------+
-|   Storage Engine    |<---------->|  Event Engine |
-+----------------------+            +---------------+
-```
+- `cmd/minion/main.go` – entrypoint, flag parsing, config loading, storage initialization, TLS setup, service start, and client management subcommands.
+- `internal/server/` – HTTP API, auth middleware, audit middleware, route handlers, and JSON responses.
+- `internal/collectors/` – Linux collectors for system info, users, services, Fail2Ban, Wazuh, logins, memory, disk, sudo events, journal logs, iptables, and IP block checks.
+- `internal/config/` – JSON config loading and defaults.
+- `internal/security/` – API key hashing/verification and IP allow-list checks.
+- `internal/storage/` – SQLite persistence for clients and audit data.
+- `systemd/minion.service` – service unit used by install/package scripts.
+
+Runtime flow:
+
+1. `cmd/minion` loads `/etc/minion/config.json` by default, creating a minimal config if missing.
+2. Storage opens the configured SQLite database, defaulting to `/opt/minion/minion.db`.
+3. `internal/server` registers `/api/v1/*` routes and starts HTTP/TLS on `api.bind` (default `0.0.0.0:9870`).
+4. Auth checks a bearer API key plus source IP/CIDR allow-list against config clients and stored clients.
+5. Handlers call collectors and return JSON; audit middleware records API activity.
+
+## API Surface
+
+Routes are registered in `internal/server/server.go`:
+
+- Public/audited: `GET /api/v1/health`
+- Authenticated/audited collectors: `/api/v1/system`, `/api/v1/users`, `/api/v1/services`, `/api/v1/fail2ban`, `/api/v1/ipblock`, `/api/v1/wazuh`, `/api/v1/logins`, `/api/v1/memory`, `/api/v1/iptables`, `/api/v1/disk`, `/api/v1/sudo`, `/api/v1/journal`
+- Explicit administrative action: `/api/v1/fail2ban/unban`
+
+Security/design constraint from README/SPEC/ADR: do not add generic shell execution endpoints such as `/api/v1/execute`. Administrative capabilities must be explicit endpoints with input validation and audit logging.
 
 ## Configuration & Runtime Files
 
-- **Configuration**: `/etc/minion/config.yaml` – defines allowed IPs, API keys, and enabled clients.
-- **Database**: `/opt/minion/minion.db` – local SQLite store.
-- **Log**: `/var/log/minion/minion.log` – written by the binary and visible via `journalctl`.
-- **Binary location**: installed to `/usr/local/bin/minion` (or any location on `$PATH`).
+- Config: `/etc/minion/config.json`
+- TLS files: `/etc/minion/tls/minion.crt` and `/etc/minion/tls/minion.key`
+- SQLite DB: `/opt/minion/minion.db`
+- Installed binary: `/usr/local/bin/minion`
+- Service: `minion.service`
 
-## Development Workflow
+Config schema is JSON, not YAML. Clients have `name`, `allowed_ips`, `api_key_hash`, and `enabled`. API keys are generated by Minion and verified by hash.
 
-1. **Add source files** – typical Go layout (`cmd/minion/main.go`, `internal/...`).
-2. **Create `go.mod`** – run `go mod init github.com/yourorg/minion`.
-3. **Run `go mod tidy`** to fetch dependencies.
-4. **Write tests** alongside code (files ending with `_test.go`).
-5. **Run lint / format** before committing.
-6. **Commit** and optionally push; CI can run `go test` and `go vet`.
+## Client Management
+
+The main binary supports client administration via flags/subcommands in `cmd/minion/main.go`, including create/list/enable/disable/delete flows. Use these paths rather than hand-editing stored client rows where possible.
+
+## Packaging / Installation
+
+`build_deb.sh`, `install.sh`, and `install_minion.sh` handle local install/package workflows. The service is intended to run with enough host privileges for collectors such as Fail2Ban, iptables, journal, and systemd service inspection.
+
+## Maintenance Notes
+
+- `go.mod` declares Go `1.25.0`, while GitHub Actions currently configures Go `1.22`; align these before relying on CI for version-specific behavior.
+- `.golangci.yml` enables `govet`, `staticcheck`, `gofmt`, and `goimports`.
+- `cmd/check` and `cmd/verify` are helper/debug commands with sample key/hash material; avoid treating them as production entrypoints.
 
 ## Reference Documents
 
-- **Specification** – `SPEC.md` – detailed functional spec, component list, API endpoints, config schema.
-- **Product Requirements** – `PRD.md` (currently placeholder).
-- **Architecture Decision Record** – `ADR.md` – decisions about base architecture.
+- `README.md` – user-facing overview, install/config/API notes, and security constraints.
+- `SPEC.md` – functional specification and API/security model.
+- `ADR.md` – architecture decisions, including avoiding direct SSH/free-command execution in favor of an authenticated local API.
+- `PRD.md` – product requirements placeholder or planning document.
