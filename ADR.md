@@ -449,7 +449,7 @@ Solicitar ações controladas quando autorizado
 
 # Contexto
 
-Foi avaliada a possibilidade de permitir execução remota e ações administrativas nos hosts.
+Foi avaliada a possibilidade de permitir ações administrativas nos hosts.
 
 O Minion foi criado justamente para evitar que automações externas precisem elevar privilégios diretamente nos servidores. Portanto, o modelo de ação precisa preservar essa decisão de segurança.
 
@@ -463,6 +463,15 @@ Ações administrativas amplas, como criar usuários, excluir usuários, bloquea
 
 Versões futuras poderão incluir ações administrativas, desde que sejam expostas como capacidades explícitas, específicas e auditáveis da API.
 
+Cada ação administrativa futura deverá ter:
+
+* Endpoint próprio.
+* Handler próprio.
+* Validação própria de entrada.
+* Registro de auditoria.
+* Comportamento previsível e documentado.
+* Mapeamento interno para uma operação permitida.
+
 Exemplos aceitáveis para versões futuras:
 
 ```text
@@ -473,16 +482,34 @@ DELETE /api/v1/ipblock/{ip}
 POST /api/v1/services/{name}/restart
 ```
 
-Não será permitido endpoint genérico de execução de comandos.
+Não será permitido endpoint genérico para execução de comandos shell.
+
+Não será permitido receber comando arbitrário por payload, string, prompt, JSON ou qualquer outro formato externo.
 
 Exemplo proibido:
 
 ```text
 POST /api/v1/execute
 {
-  "command": "..."
+  "command": "useradd joao"
 }
 ```
+
+O modelo correto é API de capacidade, não shell remoto.
+
+Quando uma capacidade precisar executar algo no sistema operacional, o comando real deverá estar implementado internamente no código do Minion ou em whitelist local controlada pelo próprio Minion, nunca recebido bruto de um cliente externo.
+
+Exemplo correto:
+
+```text
+POST /api/v1/users
+{
+  "username": "joao",
+  "shell": "/bin/bash"
+}
+```
+
+Neste modelo, o cliente solicita a capacidade `criar usuário`. O Minion valida os parâmetros e executa internamente apenas a operação permitida para aquela capacidade.
 
 ---
 
@@ -491,6 +518,7 @@ POST /api/v1/execute
 * Preserva a motivação original do projeto: eliminar elevação de privilégios distribuída em automações externas.
 * Reduz superfície de ataque.
 * Evita execução arbitrária por bots, LLMs, pipelines ou integrações externas.
+* Impede que clientes externos transformem o Minion em shell remoto.
 * Permite auditoria por ação de negócio, e não por comando bruto.
 * Mantém separação clara entre inteligência/orquestração externa e capacidade local controlada.
 
