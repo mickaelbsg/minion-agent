@@ -183,9 +183,13 @@ func (s *Server) handleFail2BanUnban(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleIPBlock(w http.ResponseWriter, r *http.Request) {
-	ip := r.URL.Query().Get("ip")
+	ip := strings.TrimSpace(r.URL.Query().Get("ip"))
 	if ip == "" {
 		s.writeError(w, http.StatusBadRequest, "ip query parameter required")
+		return
+	}
+	if net.ParseIP(ip) == nil {
+		s.writeError(w, http.StatusBadRequest, "invalid ip address")
 		return
 	}
 	blocked, err := collectors.IsIPBlocked(ip)
