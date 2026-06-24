@@ -14,41 +14,60 @@ import (
 )
 
 func main() {
-	// Definimos as flags globalmente
-	configPath := flag.String("config", "/etc/minion/config.json", "Path to JSON configuration file")
-	createClient := flag.Bool("create-client", false, "Create a new API client and print the API key")
-	clientName := flag.String("name", "", "Name of the client")
-	clientIPs := flag.String("ips", "", "Comma separated list of allowed IPs/CIDRs")
-	
-	flag.Parse()
+	fs := flag.NewFlagSet("minion", flag.ExitOnError)
+	configPath := fs.String("config", "/etc/minion/config.json", "Path to JSON configuration file")
+	createClient := fs.Bool("create-client", false, "Create a new API client and print the API key")
+	clientName := fs.String("name", "", "Name of the client")
+	clientIPs := fs.String("ips", "", "Comma separated list of allowed IPs/CIDRs")
 
-	args := flag.Args()
-	
-	// Se houver subcomandos, tratamos eles
-	if len(args) > 0 {
-		switch args[0] {
+	// Lógica para permitir flags em qualquer lugar:
+	// Coletamos todos os argumentos e separamos subcomandos de flags
+	var subcommands []string
+	var flagsOnly []string
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if strings.HasPrefix(arg, "-") {
+			flagsOnly = append(flagsOnly, arg)
+			// Se a flag tem um valor (não é booleana), pegamos o próximo também
+			if !strings.Contains(arg, "=") && i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
+				flagsOnly = append(flagsOnly, os.Args[i+1])
+				i++
+			}
+		} else {
+			subcommands = append(subcommands, arg)
+		}
+	}
+
+	// Parseamos apenas as flags coletadas
+	_ = fs.Parse(flagsOnly)
+
+	// Se houver subcomandos
+	if len(subcommands) > 0 {
+		switch subcommands[0] {
 		case "setup":
 			setup()
 			return
 		case "client":
-			handleClientCommands(args[1:], *configPath, *clientName, *clientIPs)
+			cmdArgs := []string{}
+			if len(subcommands) > 1 {
+				cmdArgs = subcommands[1:]
+			}
+			handleClientCommands(cmdArgs, *configPath, *clientName, *clientIPs)
 			return
 		case "add":
-			if len(args) > 1 && args[1] == "client" {
-				// Agora o add client vai usar as flags populadas pelo flag.Parse()
+			if len(subcommands) > 1 && subcommands[1] == "client" {
 				handleClientCommands([]string{"create"}, *configPath, *clientName, *clientIPs)
 				return
 			}
 		}
 	}
 
-	// Se a flag --create-client for usada diretamente
 	if *createClient {
 		handleClientCommands([]string{"create"}, *configPath, *clientName, *clientIPs)
 		return
 	}
 
-	// Comportamento padrão: Iniciar o servidor
+	// Default: Start server
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -100,14 +119,11 @@ func setup() {
 }
 
 func handleClientCommands(args []string, configPath, name, ips string) {
-	// Se for o comando 'create' mas sem subcomando explícito (via add client ou --create-client)
-	// a lógica abaixo vai funcionar se o nome e ips estiverem presentes
-	
 	cmd := ""
 	if len(args) > 0 {
 		cmd = args[0]
 	} else {
-		cmd = "create" // default para chamadas diretas via flags
+		cmd = "create"
 	}
 
 	cfg, _ := config.Load(configPath)
