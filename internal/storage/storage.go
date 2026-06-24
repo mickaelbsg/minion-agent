@@ -11,11 +11,11 @@ import (
 )
 
 type Client struct {
-	ID         int
-	Name       string
-	AllowedIPs []string
-	APIKeyHash string
-	Enabled    bool
+	ID         int      `json:"id"`
+	Name       string   `json:"name"`
+	AllowedIPs []string `json:"allowed_ips"`
+	APIKeyHash string   `json:"api_key_hash"`
+	Enabled    bool     `json:"enabled"`
 }
 
 type Storage struct {
@@ -79,9 +79,8 @@ func (s *Storage) InsertAudit(clientName, ip, method, path string, status int) e
 	return err
 }
 
-// GetClients recupera todos os clientes ativos do banco de dados
 func (s *Storage) GetClients() ([]Client, error) {
-	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled FROM clients WHERE enabled = 1")
+	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled FROM clients")
 	if err != nil {
 		return nil, err
 	}
@@ -100,11 +99,20 @@ func (s *Storage) GetClients() ([]Client, error) {
 	return clients, nil
 }
 
-// InsertClient insere um novo cliente no banco de dados
 func (s *Storage) InsertClient(name, ips, hash string) error {
 	_, err := s.DB.Exec(
 		"INSERT INTO clients (name, allowed_ips, api_key_hash) VALUES (?, ?, ?)",
 		name, ips, hash,
 	)
+	return err
+}
+
+func (s *Storage) UpdateClientStatus(name string, enabled bool) error {
+	_, err := s.DB.Exec("UPDATE clients SET enabled = ? WHERE name = ?", enabled, name)
+	return err
+}
+
+func (s *Storage) DeleteClient(name string) error {
+	_, err := s.DB.Exec("DELETE FROM clients WHERE name = ?", name)
 	return err
 }

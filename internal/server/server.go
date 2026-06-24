@@ -37,6 +37,9 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/v1/logins", s.audit(s.auth(s.handleLogins)))
 	mux.HandleFunc("/api/v1/memory", s.audit(s.auth(s.handleMemory)))
 	mux.HandleFunc("/api/v1/iptables", s.audit(s.auth(s.handleIPTables)))
+	mux.HandleFunc("/api/v1/disk", s.audit(s.auth(s.handleDisk)))
+	mux.HandleFunc("/api/v1/sudo", s.audit(s.auth(s.handleSudo)))
+	mux.HandleFunc("/api/v1/journal", s.audit(s.auth(s.handleJournal)))
 
 	addr := s.cfg.API.Bind
 	if addr == "" {
@@ -47,7 +50,6 @@ func (s *Server) Start() error {
 	certFile := "/etc/minion/tls/minion.crt"
 	keyFile := "/etc/minion/tls/minion.key"
 
-	// Fallback para HTTP se os arquivos TLS não existirem (para facilitar testes)
 	if _, err := net.LookupHost("localhost"); err == nil {
 		return http.ListenAndServeTLS(addr, certFile, keyFile, mux)
 	}
@@ -134,7 +136,7 @@ func (s *Server) handleServices(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleFail2Ban(w http.ResponseWriter, r *http.Request) {
-	items, err := collectors.GetFail2BanStatus()
+	items, err := collectors.GetFail2BanEvents()
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -228,6 +230,35 @@ func (s *Server) handleIPTables(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writeJSON(w, rules)
+}
+
+func (s *Server) handleDisk(w http.ResponseWriter, r *http.Request) {
+	usage, err := collectors.GetDiskUsage()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, usage)
+}
+
+func (s *Server) handleSudo(w http.ResponseWriter, r *http.Request) {
+	events, err := collectors.GetSudoEvents()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, events)
+}
+
+func (s *Server) handleJournal(w http.ResponseWriter, r *http.Request) {
+	limit := r.URL.Query().Get("limit")
+	level := r.URL.Query().Get("level")
+	logs, err := collectors.GetJournalLogs(limit, level)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, logs)
 }
 
 func (s *Server) writeJSON(w http.ResponseWriter, v interface{}) {
