@@ -85,13 +85,17 @@ func main() {
 }
 
 func setup() {
+	if os.Geteuid() != 0 {
+		log.Fatal("setup must be run as root. Use: sudo minion setup")
+	}
+
 	if err := os.MkdirAll("/etc/minion/tls", 0755); err != nil {
 		log.Fatalf("failed to create /etc/minion/tls: %v", err)
 	}
 	certPath := "/etc/minion/tls/minion.crt"
 	keyPath := "/etc/minion/tls/minion.key"
 	if _, err := os.Stat(certPath); os.IsNotExist(err) {
-		cmd := exec.Command("sudo", "openssl", "req", "-newkey", "rsa:2048", "-nodes",
+		cmd := exec.Command("openssl", "req", "-newkey", "rsa:2048", "-nodes",
 			"-keyout", keyPath, "-x509", "-days", "365", "-out", certPath,
 			"-subj", "/CN=minion")
 		cmd.Stdout = os.Stdout
@@ -99,7 +103,7 @@ func setup() {
 		if err := cmd.Run(); err != nil {
 			log.Fatalf("failed to generate TLS cert: %v", err)
 		}
-		log.Printf("Generated self‑signed TLS cert at %s", certPath)
+		log.Printf("Generated self-signed TLS cert at %s", certPath)
 	}
 	if _, err := os.Stat("/etc/minion/config.json"); os.IsNotExist(err) {
 		src := "config.example.json"
@@ -111,7 +115,7 @@ func setup() {
 			log.Printf("Wrote default config to /etc/minion/config.json")
 		}
 	}
-	if err := exec.Command("sudo", "systemctl", "enable", "--now", "minion.service").Run(); err != nil {
+	if err := exec.Command("systemctl", "enable", "--now", "minion.service").Run(); err != nil {
 		log.Printf("warning: failed to enable/start systemd service: %v", err)
 	} else {
 		log.Printf("systemd minion.service enabled and started")
