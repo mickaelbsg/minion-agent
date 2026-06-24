@@ -14,39 +14,53 @@ type IPTablesRule struct {
 }
 
 func GetIPTablesRules() ([]IPTablesRule, error) {
-	// Requer privilégios de root, mas como o agente rodará como systemd/root, deve funcionar.
-	cmd := exec.Command("sudo", "iptables", "-S")
+	// The agent is expected to run with the required system privileges via systemd.
+	// Avoid calling sudo here because sudo can block or fail when no TTY/sudoers rule exists.
+	cmd := exec.Command("iptables", "-S")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
 
+	return ParseIPTablesRules(string(output)), nil
+}
+
+func ParseIPTablesRules(output string) []IPTablesRule {
 	var rules []IPTablesRule
-	lines := strings.Split(string(output), "\n")
+	lines := strings.Split(output, "\n")
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
+
 		parts := strings.Fields(line)
-		rule := IPTablesRule{
-			Chain: "UNKNOWN",
-		}
-		
-		// Parsing simplificado de iptables -S
+		rule := IPTablesRule{Chain: "UNKNOWN"}
+
 		for i := 0; i < len(parts); i++ {
 			switch parts[i] {
 			case "-A", "-N", "-P":
-				rule.Chain = parts[i+1]
+				if i+1 < len(parts) {
+					rule.Chain = parts[i+1]
+				}
 			case "-j":
-				rule.Target = parts[i+1]
+				if i+1 < len(parts) {
+					rule.Target = parts[i+1]
+				}
 			case "-s":
-				rule.Source = parts[i+1]
+				if i+1 < len(parts) {
+					rule.Source = parts[i+1]
+				}
 			case "-d":
-				rule.Dest = parts[i+1]
+				if i+1 < len(parts) {
+					rule.Dest = parts[i+1]
+				}
 			}
 		}
+
+		rule.Extra = line
 		rules = append(rules, rule)
 	}
 
-	return rules, nil
+	return rules
 }
