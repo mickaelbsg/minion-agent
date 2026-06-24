@@ -151,6 +151,4 @@ O projeto Minion Agent está em constante evolução. As próximas etapas inclue
 
 [1] [ADR.md](https://github.com/mickaelbsg/minion-agent/blob/main/ADR.md)
 
----
 
-*Este README foi atualizado por Manus AI em 24 de Junho de 2026.*
