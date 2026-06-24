@@ -11,22 +11,26 @@
 
 A organização possui múltiplos sistemas que necessitam coletar informações operacionais de servidores Linux.
 
-Atualmente a coleta é realizada principalmente através de:
+Historicamente, a coleta e automação eram realizadas principalmente através de:
 
 * SSH
 * Execução remota de comandos
 * Scripts distribuídos
 * Consultas recorrentes em arquivos de log
+* Automações com necessidade de elevação de privilégios nos hosts
 
 Esse modelo gera:
 
 * Grande volume de logs de autenticação
 * Alertas constantes em ferramentas de segurança
-* Necessidade de gerenciamento de credenciais
+* Necessidade de gerenciamento de credenciais privilegiadas
 * Complexidade operacional
 * Baixa padronização entre integrações
+* Risco de elevação de privilégios distribuída entre automações, bots, pipelines e integrações externas
 
-Foi identificada a necessidade de criar uma camada padronizada para coleta e exposição de informações locais dos servidores Linux.
+A motivação principal do Minion nasceu de uma preocupação de segurança: automações externas estavam exigindo subida de privilégios nos servidores, o que aumentava a superfície de ataque e dificultava auditoria.
+
+Foi identificada a necessidade de criar uma camada padronizada para coleta e exposição de informações locais dos servidores Linux, evitando que cada automação precise acessar o host diretamente com privilégios elevados.
 
 ---
 
@@ -34,14 +38,17 @@ Foi identificada a necessidade de criar uma camada padronizada para coleta e exp
 
 Será desenvolvido um agente denominado **Minion**.
 
-O Minion será executado localmente em servidores Linux e será responsável por:
+O Minion será executado localmente em servidores Linux como serviço systemd e será responsável por:
 
 * Coletar informações operacionais.
 * Armazenar informações localmente.
 * Expor uma API HTTP para consulta.
 * Controlar o acesso aos seus dados.
+* Concentrar localmente as permissões necessárias para inspecionar o sistema operacional.
 
 O Minion não executará análises, correlações ou decisões automatizadas.
+
+Sistemas externos, como Severino, n8n, dashboards, LLMs e outras integrações, não devem acessar diretamente o host com credenciais privilegiadas. Eles devem consumir exclusivamente a API do Minion.
 
 ---
 
@@ -52,14 +59,17 @@ O Minion não executará análises, correlações ou decisões automatizadas.
 * Eliminação da necessidade de SSH recorrente.
 * Redução de ruído em logs.
 * Padronização de integrações.
-* Menor dependência de credenciais administrativas.
+* Menor dependência de credenciais administrativas distribuídas.
 * Arquitetura simples e previsível.
+* Redução da superfície de ataque causada por automações externas privilegiadas.
+* Auditoria centralizada das consultas e futuras ações administrativas.
 
 ## Negativas
 
 * Necessidade de instalação do agente.
 * Necessidade de manutenção do binário.
 * Necessidade de atualização dos agentes.
+* O Minion passa a ser um componente sensível e deve ser protegido, versionado e auditado com rigor.
 
 ---
 
@@ -244,6 +254,8 @@ Adiado para futuras versões.
 
 O Minion deve permitir acesso apenas a clientes autorizados.
 
+Além disso, o Minion existe para reduzir a necessidade de credenciais privilegiadas distribuídas em automações externas.
+
 ---
 
 # Decisão
@@ -253,6 +265,8 @@ O acesso será protegido por:
 * Restrição por IP.
 * API Key.
 * Status ativo/inativo.
+
+O Minion será a fronteira local de segurança entre sistemas externos e o sistema operacional.
 
 ---
 
@@ -275,6 +289,8 @@ Acesso liberado
 # Justificativa
 
 Fornece proteção adequada para ambientes internos sem aumentar a complexidade da V1.
+
+O modelo reduz a exposição de credenciais administrativas fora do host e permite que a segurança audite um ponto controlado em vez de múltiplas automações privilegiadas.
 
 ---
 
@@ -410,6 +426,7 @@ Minion:
 Coletar
 Armazenar
 Disponibilizar
+Executar capacidades locais explícitas quando aprovadas em versões futuras
 ```
 
 Severino:
@@ -419,11 +436,12 @@ Interpretar
 Correlacionar
 Analisar
 Responder
+Solicitar ações controladas quando autorizado
 ```
 
 ---
 
-# ADR-010 — Execução Remota de Comandos
+# ADR-010 — Ações Administrativas Controladas
 
 **Status:** Aprovado
 
@@ -431,30 +449,55 @@ Responder
 
 # Contexto
 
-Foi avaliada a possibilidade de permitir execução remota.
+Foi avaliada a possibilidade de permitir execução remota e ações administrativas nos hosts.
+
+O Minion foi criado justamente para evitar que automações externas precisem elevar privilégios diretamente nos servidores. Portanto, o modelo de ação precisa preservar essa decisão de segurança.
 
 ---
 
 # Decisão
 
-A V1 não executará comandos remotos.
+A V1 será predominantemente observacional.
+
+Ações administrativas amplas, como criar usuários, excluir usuários, bloquear IPs, desbloquear IPs e outras alterações no sistema operacional, não fazem parte do escopo inicial.
+
+Versões futuras poderão incluir ações administrativas, desde que sejam expostas como capacidades explícitas, específicas e auditáveis da API.
+
+Exemplos aceitáveis para versões futuras:
+
+```text
+POST /api/v1/users
+DELETE /api/v1/users/{username}
+POST /api/v1/ipblock
+DELETE /api/v1/ipblock/{ip}
+POST /api/v1/services/{name}/restart
+```
+
+Não será permitido endpoint genérico de execução de comandos.
+
+Exemplo proibido:
+
+```text
+POST /api/v1/execute
+{
+  "command": "..."
+}
+```
 
 ---
 
 # Justificativa
 
-* Redução da superfície de ataque.
-* Simplificação da segurança.
-* Foco na coleta de informações.
+* Preserva a motivação original do projeto: eliminar elevação de privilégios distribuída em automações externas.
+* Reduz superfície de ataque.
+* Evita execução arbitrária por bots, LLMs, pipelines ou integrações externas.
+* Permite auditoria por ação de negócio, e não por comando bruto.
+* Mantém separação clara entre inteligência/orquestração externa e capacidade local controlada.
 
 ---
 
 # Consequências
 
-O Minion será exclusivamente um agente observacional na versão inicial.
+O Minion poderá evoluir para executar alterações no sistema operacional, mas somente através de endpoints específicos, validados, registrados em auditoria e projetados com regras claras.
 
-Não realizará alterações no sistema operacional.
-
-Não executará ações administrativas.
-
-Não substituirá ferramentas de automação como Ansible, AWX ou SaltStack.
+O Minion não substituirá ferramentas de automação como Ansible, AWX ou SaltStack para execução genérica. Seu papel será expor capacidades locais seguras para operações recorrentes e bem definidas.
