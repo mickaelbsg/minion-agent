@@ -35,6 +35,8 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/v1/ipblock", s.audit(s.auth(s.handleIPBlock)))
 	mux.HandleFunc("/api/v1/wazuh", s.audit(s.auth(s.handleWazuh)))
 	mux.HandleFunc("/api/v1/logins", s.audit(s.auth(s.handleLogins)))
+	mux.HandleFunc("/api/v1/memory", s.audit(s.auth(s.handleMemory)))
+	mux.HandleFunc("/api/v1/iptables", s.audit(s.auth(s.handleIPTables)))
 
 	addr := s.cfg.API.Bind
 	if addr == "" {
@@ -69,7 +71,6 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Tenta autenticar via Config estática primeiro
 		authenticated := false
 		for _, c := range s.cfg.Clients {
 			if c.Enabled && security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
@@ -79,7 +80,6 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
-		// Se não autenticou via config, tenta via Banco de Dados
 		if !authenticated && s.storage != nil {
 			clients, err := s.storage.GetClients()
 			if err == nil {
@@ -102,4 +102,143 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// ... (restantes handlers handleHealth, handleSystem, etc permanecem os mesmos)
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	s.writeJSON(w, map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
+	sys, err := collectors.GetSystem()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, sys)
+}
+
+func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := collectors.GetUsers()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, users)
+}
+
+func (s *Server) handleServices(w http.ResponseWriter, r *http.Request) {
+	services, err := collectors.GetServices()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, services)
+}
+
+func (s *Server) handleFail2Ban(w http.ResponseWriter, r *http.Request) {
+	items, err := collectors.GetFail2BanStatus()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, items)
+}
+
+func (s *Server) handleFail2BanUnban(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var payload struct {
+		IP   string `json:"ip"`
+		Jail string `json:"jail"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		s.writeError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+	if net.ParseIP(payload.IP) == nil {
+		s.writeError(w, http.StatusBadRequest, "invalid ip address")
+		return
+	}
+	allowedJails := []string{"sshd", "apache-auth", "recidive"}
+	jailAllowed := false
+	for _, aj := range allowedJails {
+		if payload.Jail == aj {
+			jailAllowed = true
+			break
+		}
+	}
+	if !jailAllowed {
+		s.writeError(w, http.StatusBadRequest, "jail not allowed")
+		return
+	}
+	cmd := exec.Command("fail2ban-client", "set", payload.Jail, "unbanip", payload.IP)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, string(out))
+		return
+	}
+	s.writeJSON(w, map[string]string{"status": "unbanned", "ip": payload.IP, "jail": payload.Jail})
+}
+
+func (s *Server) handleIPBlock(w http.ResponseWriter, r *http.Request) {
+	ip := r.URL.Query().Get("ip")
+	if ip == "" {
+		s.writeError(w, http.StatusBadRequest, "ip query parameter required")
+		return
+	}
+	blocked, err := collectors.IsIPBlocked(ip)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, map[string]bool{"blocked": blocked})
+}
+
+func (s *Server) handleWazuh(w http.ResponseWriter, r *http.Request) {
+	status, err := collectors.GetWazuhStatus()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, status)
+}
+
+func (s *Server) handleLogins(w http.ResponseWriter, r *http.Request) {
+	items, err := collectors.GetLogins()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, items)
+}
+
+func (s *Server) handleMemory(w http.ResponseWriter, r *http.Request) {
+	mem, err := collectors.GetMemory()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, mem)
+}
+
+func (s *Server) handleIPTables(w http.ResponseWriter, r *http.Request) {
+	rules, err := collectors.GetIPTablesRules()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.writeJSON(w, rules)
+}
+
+func (s *Server) writeJSON(w http.ResponseWriter, v interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("failed to write json: %v", err)
+	}
+}
+
+func (s *Server) writeError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}

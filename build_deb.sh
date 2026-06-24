@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 # Build a Debian package for Minion Agent
-# Assumes the compiled static binary is at $(pwd)/minion
-# and that a sample config exists at config.example.json
-
 set -e
 
 PKG_NAME="minion"
@@ -26,7 +23,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
-Depends: libc6 (>= 2.28), iptables, fail2ban, openssl
+Depends: libc6 (>= 2.28), iptables, fail2ban, openssl, sqlite3
 Description: Minion Agent – lightweight Linux data collector and API server.
  Minion gathers system information, users, services, Fail2Ban bans, and exposes a secure HTTPS API.
 EOF
@@ -38,7 +35,7 @@ set -e
 # Reload systemd, enable and start the service
 systemctl daemon-reload
 systemctl enable minion.service
-systemctl start minion.service
+systemctl restart minion.service
 exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/postinst"
@@ -56,8 +53,8 @@ chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 
 # ---- Binary ----
 if [[ ! -f "$(pwd)/minion" ]]; then
-  echo "Error: minion binary not found in $(pwd)" >&2
-  exit 1
+  echo "Compiling minion binary..."
+  go build -o minion ./cmd/minion/main.go
 fi
 cp "$(pwd)/minion" "$DEB_ROOT/usr/local/bin/minion"
 chmod 755 "$DEB_ROOT/usr/local/bin/minion"
@@ -66,32 +63,31 @@ chmod 755 "$DEB_ROOT/usr/local/bin/minion"
 if [[ -f "config.example.json" ]]; then
   cp "config.example.json" "$DEB_ROOT/etc/minion/config.json"
 else
-  echo "Warning: config.example.json not found, creating empty config.json"
-  echo "{}" > "$DEB_ROOT/etc/minion/config.json"
+  echo "{\"api\": {\"bind\": \"0.0.0.0:9870\"}, \"db_path\": \"/etc/minion/minion.db\"}" > "$DEB_ROOT/etc/minion/config.json"
 fi
 chmod 644 "$DEB_ROOT/etc/minion/config.json"
 
-# ---- TLS (optional) ----
-if [[ -d "tls" ]]; then
-  cp -r tls/* "$DEB_ROOT/etc/minion/tls/"
-  chmod 600 "$DEB_ROOT/etc/minion/tls/minion.key" || true
-  chmod 644 "$DEB_ROOT/etc/minion/tls/minion.crt" || true
-fi
-
 # ---- systemd service ----
-cat > "$DEB_ROOT/lib/systemd/system/minion.service" <<'EOS'
+if [[ -f "systemd/minion.service" ]]; then
+  cp "systemd/minion.service" "$DEB_ROOT/lib/systemd/system/minion.service"
+else
+  cat > "$DEB_ROOT/lib/systemd/system/minion.service" <<'EOS'
 [Unit]
 Description=Minion Agent Service
 After=network.target
 
 [Service]
+Type=simple
 ExecStart=/usr/local/bin/minion --config /etc/minion/config.json
-Restart=on-failure
-Environment=HOME=/root
+Restart=always
+User=root
+Group=root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 
 [Install]
 WantedBy=multi-user.target
 EOS
+fi
 chmod 644 "$DEB_ROOT/lib/systemd/system/minion.service"
 
 # Build the .deb package
