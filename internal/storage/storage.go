@@ -101,14 +101,18 @@ func (s *Storage) GetClients() ([]Client, error) {
 
 func (s *Storage) InsertClient(name, ips, hash string) error {
 	_, err := s.DB.Exec(
-		"INSERT INTO clients (name, allowed_ips, api_key_hash) VALUES (?, ?, ?)",
-		name, ips, hash,
+		"INSERT INTO clients (name, allowed_ips, api_key_hash, enabled) VALUES (?, ?, ?, ?)",
+		name, ips, hash, 1,
 	)
 	return err
 }
 
 func (s *Storage) UpdateClientStatus(name string, enabled bool) error {
-	_, err := s.DB.Exec("UPDATE clients SET enabled = ? WHERE name = ?", enabled, name)
+	val := 0
+	if enabled {
+		val = 1
+	}
+	_, err := s.DB.Exec("UPDATE clients SET enabled = ? WHERE name = ?", val, name)
 	return err
 }
 
