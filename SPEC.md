@@ -6,13 +6,15 @@ Minion é um agente Linux desenvolvido em Go, distribuído como binário único 
 
 Seu objetivo é coletar informações operacionais e de segurança localmente, disponibilizando esses dados através de uma API HTTP autenticada para consumo por sistemas externos, como o Severino.
 
+O Minion existe para reduzir a necessidade de SSH recorrente e evitar que automações externas precisem realizar elevação de privilégios diretamente nos servidores.
+
 O Minion não possui inteligência artificial embarcada.
 
 O Minion não realiza análises.
 
 O Minion não toma decisões.
 
-O Minion atua exclusivamente como camada de coleta, armazenamento local e exposição segura de informações.
+O Minion atua como camada local de coleta, armazenamento, exposição segura de informações e, em versões futuras, execução de capacidades administrativas explícitas via API.
 
 ---
 
@@ -25,6 +27,8 @@ O Minion atua exclusivamente como camada de coleta, armazenamento local e exposi
 * Permitir integração com Severino e outros sistemas.
 * Operar com baixo consumo de recursos.
 * Funcionar mesmo sem conectividade externa.
+* Evitar credenciais privilegiadas distribuídas entre automações externas.
+* Impedir que bots, pipelines, LLMs ou integrações externas executem comandos shell arbitrários no host.
 
 ---
 
@@ -82,7 +86,7 @@ Arquivo:
 |      Severino        |
 +----------+-----------+
            |
-           | HTTP API
+           | HTTP API autenticada
            |
 +----------+-----------+
 |        Minion        |
@@ -93,6 +97,8 @@ Arquivo:
 | Linux Operating Sys. |
 +----------------------+
 ```
+
+Sistemas externos não acessam o host diretamente para operações privilegiadas. Eles consomem a API do Minion.
 
 ---
 
@@ -106,12 +112,15 @@ Coletores suportados:
 
 * Usuários
 * Logins
-* Eventos sudo
+* Eventos de privilégio
 * Fail2Ban
 * Wazuh Agent
 * Serviços Systemd
 * Logs do Sistema
 * Informações do Host
+* Memória
+* Disco
+* Regras de firewall
 
 ---
 
@@ -122,6 +131,7 @@ Responsável por:
 * autenticação
 * autorização
 * exposição de endpoints
+* separação entre consultas e capacidades administrativas futuras
 
 ---
 
@@ -134,7 +144,7 @@ Exemplos:
 * novo usuário
 * login
 * banimento fail2ban
-* evento sudo
+* evento de privilégio
 * alteração de serviço
 
 ---
@@ -147,7 +157,7 @@ SQLite.
 
 ## Audit Logging
 
-All HTTP requests are stored in the `audit` SQLite table with fields client, ip, method, path, status.
+Todas as requisições HTTP são armazenadas na tabela `audit` do SQLite com campos de cliente, IP, método, path e status.
 
 ---
 
@@ -164,22 +174,23 @@ Cada cliente autorizado possui:
 * API Key
 * Status
 
+O Minion deve rodar com as permissões necessárias via systemd. O runtime do Minion não deve chamar `sudo` internamente.
+
+É permitido que um administrador humano use `sudo` para instalar, configurar, iniciar, parar ou consultar logs do serviço. Essa permissão administrativa externa não deve ser confundida com o comportamento interno do Minion.
+
 ---
 
 ## Cliente
 
 Exemplo:
 
-```yaml
-clients:
-  - name: api_severino
-
-    allowed_ips:
-      - 192.168.56.2/32
-
-    api_key_hash: "$argon2id$..."
-
-    enabled: true
+```json
+{
+  "name": "api_severino",
+  "allowed_ips": ["192.168.56.2/32"],
+  "api_key_hash": "$argon2id$...",
+  "enabled": true
+}
 ```
 
 ---
@@ -227,17 +238,15 @@ Argon2id
 ## Criar Cliente
 
 ```bash
-minion client create api_severino \
-  --ip 192.168.56.2/32
+minion client create --name api_severino --ips 192.168.56.2/32
 ```
 
 Retorno:
 
 ```text
-Cliente: api_severino
-
-API Key:
-minion_sk_xxxxxxxxxxxxxx
+Client: api_severino
+API Key: minion_sk_xxxxxxxxxxxxxx
+API Key Hash: xxxxxxxxxxxxxx
 ```
 
 ---
@@ -282,11 +291,13 @@ Versão 1:
 ALL OR NOTHING
 ```
 
-Cliente autenticado possui acesso total à API.
+Cliente autenticado possui acesso total à API disponível na V1.
 
 Não existe RBAC.
 
 Não existem permissões por rota.
+
+RBAC e permissões por capacidade devem ser reavaliados antes da inclusão de ações administrativas amplas.
 
 ---
 
@@ -340,15 +351,19 @@ auth.log
 
 ---
 
-## Elevação de Privilégio
+## Eventos de Privilégio
 
-Monitoramento:
+Monitoramento de eventos relacionados a elevação de privilégio e comandos administrativos executados por usuários humanos ou processos locais.
+
+Fontes e eventos possíveis:
 
 ```text
 sudo
 su
 pkexec
 ```
+
+A presença da palavra `sudo` aqui se refere ao evento auditado no sistema operacional. O Minion não deve chamar `sudo` para executar seus próprios coletores.
 
 ---
 
@@ -423,11 +438,21 @@ GET /api/v1/logins
 
 ---
 
-## Eventos Sudo
+## Eventos de Privilégio
+
+Endpoint atual:
 
 ```http
 GET /api/v1/sudo
 ```
+
+Nome recomendado para evolução:
+
+```http
+GET /api/v1/privilege-events
+```
+
+O endpoint coleta eventos relacionados a elevação de privilégio. Ele não executa comandos administrativos.
 
 ---
 
@@ -467,6 +492,63 @@ Parâmetros:
 ?limit=100
 ?level=error
 ```
+
+---
+
+# Ações Administrativas Futuras
+
+A V1 é predominantemente observacional.
+
+Futuramente, o Minion poderá executar ações administrativas, como:
+
+* criar usuários
+* excluir usuários
+* bloquear IPs
+* desbloquear IPs
+* reiniciar serviços permitidos
+* outras operações recorrentes e bem definidas
+
+Essas ações não serão implementadas como shell remoto.
+
+Não deve existir endpoint genérico de execução de comandos.
+
+Proibido:
+
+```http
+POST /api/v1/execute
+```
+
+Proibido receber payload como:
+
+```json
+{
+  "command": "useradd joao"
+}
+```
+
+Modelo correto:
+
+```http
+POST /api/v1/users
+```
+
+```json
+{
+  "username": "joao",
+  "shell": "/bin/bash"
+}
+```
+
+Neste modelo, o cliente solicita uma capacidade. O Minion valida os parâmetros e executa internamente apenas a operação permitida por aquela capacidade.
+
+Cada capacidade administrativa futura deve possuir:
+
+* endpoint próprio
+* validação própria
+* whitelist interna de operação
+* auditoria
+* documentação
+* comportamento previsível
 
 ---
 
@@ -552,7 +634,11 @@ O Minion deve continuar operando mesmo que:
 * Allow List por IP
 * Hash Argon2id
 * Sem credenciais em texto puro
-* Sem necessidade de SSH para coleta
+* Sem necessidade de SSH recorrente para coleta
+* Sem chamada interna a `sudo` no runtime
+* Sem shell remoto
+* Sem endpoint genérico para comandos arbitrários
+* Ações futuras somente por capacidades explícitas e auditáveis da API
 
 ---
 
@@ -565,7 +651,9 @@ O Minion deve continuar operando mesmo que:
 * Interface Web
 * Cluster
 * Multi-tenancy
-* Execução remota de comandos
+* Shell remoto
+* Endpoint genérico de execução de comandos
+* Ações administrativas amplas
 * Inteligência Artificial
 * Integração direta com LLM
 * Atualização automática
@@ -580,4 +668,8 @@ Minion não decide.
 
 Minion não analisa.
 
+Minion não é shell remoto.
+
 Minion coleta, organiza e disponibiliza dados locais de forma segura e eficiente para consumo por sistemas externos.
+
+Em versões futuras, Minion poderá executar capacidades administrativas específicas, mas apenas por API própria, whitelist interna e auditoria.
