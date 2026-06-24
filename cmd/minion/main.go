@@ -14,13 +14,17 @@ import (
 )
 
 func main() {
+	// Definimos as flags globalmente
 	configPath := flag.String("config", "/etc/minion/config.json", "Path to JSON configuration file")
 	createClient := flag.Bool("create-client", false, "Create a new API client and print the API key")
 	clientName := flag.String("name", "", "Name of the client")
 	clientIPs := flag.String("ips", "", "Comma separated list of allowed IPs/CIDRs")
+	
 	flag.Parse()
 
 	args := flag.Args()
+	
+	// Se houver subcomandos, tratamos eles
 	if len(args) > 0 {
 		switch args[0] {
 		case "setup":
@@ -31,17 +35,20 @@ func main() {
 			return
 		case "add":
 			if len(args) > 1 && args[1] == "client" {
+				// Agora o add client vai usar as flags populadas pelo flag.Parse()
 				handleClientCommands([]string{"create"}, *configPath, *clientName, *clientIPs)
 				return
 			}
 		}
 	}
 
+	// Se a flag --create-client for usada diretamente
 	if *createClient {
 		handleClientCommands([]string{"create"}, *configPath, *clientName, *clientIPs)
 		return
 	}
 
+	// Comportamento padrão: Iniciar o servidor
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -93,9 +100,14 @@ func setup() {
 }
 
 func handleClientCommands(args []string, configPath, name, ips string) {
-	if len(args) == 0 {
-		fmt.Println("Usage: minion client [create|list|enable|disable|delete]")
-		return
+	// Se for o comando 'create' mas sem subcomando explícito (via add client ou --create-client)
+	// a lógica abaixo vai funcionar se o nome e ips estiverem presentes
+	
+	cmd := ""
+	if len(args) > 0 {
+		cmd = args[0]
+	} else {
+		cmd = "create" // default para chamadas diretas via flags
 	}
 
 	cfg, _ := config.Load(configPath)
@@ -108,10 +120,10 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		log.Fatalf("failed to open storage: %v", err)
 	}
 
-	switch args[0] {
+	switch cmd {
 	case "create":
 		if name == "" || ips == "" {
-			log.Fatal("--name and --ips are required")
+			log.Fatal("--name and --ips are required. Example: minion add client --name severino --ips 127.0.0.1/32")
 		}
 		key, _ := security.GenerateAPIKey()
 		hash := security.HashAPIKey(key)
@@ -143,5 +155,7 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		}
 		stor.DeleteClient(args[1])
 		fmt.Printf("Client %s deleted\n", args[1])
+	default:
+		fmt.Println("Usage: minion client [create|list|enable|disable|delete]")
 	}
 }
