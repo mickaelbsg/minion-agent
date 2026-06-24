@@ -142,6 +142,7 @@ Ambiente recomendado:
 - Go compatível com o `go.mod` do projeto.
 - gcc/build-essential para compilar dependências CGO.
 - SQLite.
+- `last`/`wtmp` disponível no sistema para o endpoint `/api/v1/logins`.
 - Fail2Ban, se for usar endpoints relacionados.
 - iptables, se for usar coletores de firewall.
 
@@ -172,6 +173,18 @@ Verifique o serviço:
 
 ```bash
 sudo systemctl status minion
+```
+
+A unit carregada deve vir de `/lib/systemd/system/minion.service` quando instalada via pacote. Se existir uma unit antiga em `/etc/systemd/system/minion.service`, ela tem prioridade sobre a unit do pacote e pode causar falhas como `status=217/USER`.
+
+Correção para unit antiga:
+
+```bash
+sudo systemctl stop minion || true
+sudo rm -f /etc/systemd/system/minion.service
+sudo systemctl daemon-reload
+sudo systemctl reset-failed minion
+sudo systemctl restart minion
 ```
 
 Acompanhe logs:
@@ -304,7 +317,32 @@ Retorna informações básicas do host.
 GET /api/v1/users
 ```
 
-Retorna informações do usuário do processo atual.
+Retorna usuários humanos cadastrados no sistema a partir de `/etc/passwd`.
+
+Critério atual:
+
+- inclui `root` (`uid=0`);
+- inclui usuários com `uid >= 1000`;
+- ignora contas com shell terminando em `/nologin` ou `/false`.
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "username": "root",
+    "uid": "0",
+    "gid": "0",
+    "home": "/root"
+  },
+  {
+    "username": "automation",
+    "uid": "1004",
+    "gid": "1004",
+    "home": "/home/automation"
+  }
+]
+```
 
 ### Serviços
 
@@ -379,7 +417,36 @@ Retorna estrutura base de status do Wazuh.
 GET /api/v1/logins
 ```
 
-Endpoint reservado para eventos de login.
+Retorna histórico recente de logins bem-sucedidos usando o comando `last`, que lê o banco `wtmp` do sistema.
+
+Comportamento atual:
+
+- consulta até 50 entradas recentes;
+- ignora eventos `reboot`, `shutdown` e `runlevel`;
+- preserva nomes completos com `last -w`;
+- marca `success=true` porque `last` registra sessões autenticadas;
+- usa `ip="local"` quando a sessão não possui IP remoto.
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "user": "mickaelgomes",
+    "ip": "192.168.22.115",
+    "success": true,
+    "timestamp": "2026-06-24T10:03:42-03:00"
+  },
+  {
+    "user": "automation",
+    "ip": "192.168.22.115",
+    "success": true,
+    "timestamp": "2026-06-23T14:22:04-03:00"
+  }
+]
+```
+
+Observação: tentativas de login malsucedidas não aparecem neste endpoint; elas devem ser obtidas por logs de autenticação ou journal.
 
 ### Memória
 

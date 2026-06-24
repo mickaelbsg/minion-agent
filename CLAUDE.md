@@ -31,7 +31,7 @@ Main source layout:
 
 - `cmd/minion/main.go` – entrypoint, flag parsing, config loading, storage initialization, TLS setup, service start, and client management subcommands.
 - `internal/server/` – HTTP API, auth middleware, audit middleware, route handlers, and JSON responses.
-- `internal/collectors/` – Linux collectors for system info, users, services, Fail2Ban, Wazuh, logins, memory, disk, sudo events, journal logs, iptables, and IP block checks.
+- `internal/collectors/` – Linux collectors for system info, users, services, Fail2Ban, Wazuh, logins, memory, disk, sudo events, journal logs, iptables, and IP block checks. The users collector reads `/etc/passwd` for human users; the logins collector uses `last -w -n 50 --time-format iso`.
 - `internal/config/` – JSON config loading and defaults.
 - `internal/security/` – API key hashing/verification and IP allow-list checks.
 - `internal/storage/` – SQLite persistence for clients and audit data.

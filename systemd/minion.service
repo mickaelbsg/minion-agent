@@ -5,10 +5,11 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/minion --config /etc/minion/config.json
-Restart=always
+Restart=on-failure
 RestartSec=5
-User=root
-Group=root
+# Run as root by default. Do not set User=/Group= here: some minimal systems
+# fail with status=217/USER when resolving explicit service users.
+Environment=HOME=/root
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 
 [Install]

@@ -326,28 +326,46 @@ Coleta:
 /etc/passwd
 ```
 
-Retorna:
+Retorna usuários humanos:
 
-* usuário
+* username
 * uid
-* shell
+* gid
 * home
+
+Critério atual da implementação:
+
+* inclui `root` (`uid=0`)
+* inclui usuários com `uid >= 1000`
+* ignora contas com shell terminando em `/nologin` ou `/false`
 
 ---
 
 ## Logins
 
-Coleta:
+Coleta histórico de logins bem-sucedidos, incluindo SSH e sessões locais registradas pelo sistema.
 
-* SSH
-* Login local
-
-Fontes:
+Fonte atual da implementação:
 
 ```text
-journalctl
-auth.log
+last -w -n 50 --time-format iso
 ```
+
+O comando `last` lê o banco `wtmp` do sistema.
+
+Retorna:
+
+* user
+* ip
+* success
+* timestamp
+
+Observações:
+
+* `success` é sempre `true`, pois `last` registra sessões autenticadas.
+* eventos `reboot`, `shutdown` e `runlevel` são ignorados.
+* sessões sem IP remoto retornam `ip` como `local`.
+* tentativas malsucedidas devem ser coletadas futuramente via `journalctl` ou `auth.log`.
 
 ---
 

@@ -32,8 +32,15 @@ EOF
 cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOS'
 #!/bin/sh
 set -e
-# Reload systemd, enable and start the service
+
+# If a legacy/local unit exists in /etc, systemd gives it precedence over the
+# packaged unit in /lib. Keep /etc in sync to avoid stale User=/Group= settings.
+if [ -f /lib/systemd/system/minion.service ]; then
+  cp /lib/systemd/system/minion.service /etc/systemd/system/minion.service
+fi
+
 systemctl daemon-reload
+systemctl reset-failed minion.service || true
 systemctl enable minion.service
 systemctl restart minion.service
 exit 0
