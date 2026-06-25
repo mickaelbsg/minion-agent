@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -50,10 +51,17 @@ func (s *Server) Start() error {
 	certFile := "/etc/minion/tls/minion.crt"
 	keyFile := "/etc/minion/tls/minion.key"
 
-	if _, err := net.LookupHost("localhost"); err == nil {
+	if fileExists(certFile) && fileExists(keyFile) {
 		return http.ListenAndServeTLS(addr, certFile, keyFile, mux)
 	}
+
+	log.Printf("TLS certificate/key not found; falling back to HTTP")
 	return http.ListenAndServe(addr, mux)
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
@@ -77,6 +85,7 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 		for _, c := range s.cfg.Clients {
 			if c.Enabled && security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
 				r = withClientName(r, c.Name)
+				setClientNameOnWriter(w, c.Name)
 				authenticated = true
 				break
 			}
@@ -86,8 +95,9 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 			clients, err := s.storage.GetClients()
 			if err == nil {
 				for _, c := range clients {
-					if security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
+					if c.Enabled && security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
 						r = withClientName(r, c.Name)
+						setClientNameOnWriter(w, c.Name)
 						authenticated = true
 						break
 					}
