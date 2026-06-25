@@ -26,14 +26,29 @@ func clientNameFromContext(r *http.Request) string {
 	return ""
 }
 
+type clientNameSetter interface {
+	setClientName(string)
+}
+
+func setClientNameOnWriter(w http.ResponseWriter, name string) {
+	if setter, ok := w.(clientNameSetter); ok {
+		setter.setClientName(name)
+	}
+}
+
 type statusRecorder struct {
 	http.ResponseWriter
-	status int
+	status     int
+	clientName string
 }
 
 func (rec *statusRecorder) WriteHeader(code int) {
 	rec.status = code
 	rec.ResponseWriter.WriteHeader(code)
+}
+
+func (rec *statusRecorder) setClientName(name string) {
+	rec.clientName = name
 }
 
 // audit is a middleware that records each request to the storage layer.
@@ -43,12 +58,15 @@ func (s *Server) audit(next http.HandlerFunc) http.HandlerFunc {
 		// Call the next handler.
 		next(rec, r)
 		// Gather audit data.
-		clientName := clientNameFromContext(r)
+		clientName := rec.clientName
+		if clientName == "" {
+			clientName = clientNameFromContext(r)
+		}
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			host = r.RemoteAddr
 		}
-		// Insert the audit record; ignore error as logging is best‑effort.
+		// Insert the audit record; ignore error as logging is best-effort.
 		_ = s.storage.InsertAudit(clientName, host, r.Method, r.URL.Path, rec.status)
 	}
 }
