@@ -2,6 +2,7 @@ package security
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"net"
 	"strings"
@@ -18,12 +19,12 @@ func GenerateAPIKey() (string, error) {
 }
 
 // HashAPIKey generates a salted Argon2id hash for the given API key.
-// A new random 16‑byte salt is generated for each call and the result is
+// A new random 16-byte salt is generated for each call and the result is
 // returned in the form "base64(salt)$base64(hash)". This format allows the
 // corresponding VerifyAPIKey function to recreate the hash using the stored
 // salt.
 func HashAPIKey(apiKey string) string {
-	// Generate a random 16‑byte salt.
+	// Generate a random 16-byte salt.
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		// In the unlikely event of a RNG failure, fall back to a deterministic
@@ -32,7 +33,7 @@ func HashAPIKey(apiKey string) string {
 		salt = []byte("fallback_salt_123")
 	}
 	hash := argon2.IDKey([]byte(apiKey), salt, 1, 64*1024, 4, 32)
-	// Encode both components using URL‑safe base64 without padding.
+	// Encode both components using URL-safe base64 without padding.
 	return base64.RawURLEncoding.EncodeToString(salt) + "$" + base64.RawURLEncoding.EncodeToString(hash)
 }
 
@@ -47,13 +48,13 @@ func VerifyAPIKey(apiKey, stored string) bool {
 	if err != nil {
 		return false
 	}
-	expectedHash := parts[1]
-	// Re‑compute the hash with the extracted salt.
+	expectedHash, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+
 	hash := argon2.IDKey([]byte(apiKey), saltBytes, 1, 64*1024, 4, 32)
-	computed := base64.RawURLEncoding.EncodeToString(hash)
-	// Constant‑time comparison is not strictly necessary for API keys but we
-	// use strings.EqualFold to avoid timing leaks.
-	return computed == expectedHash
+	return subtle.ConstantTimeCompare(hash, expectedHash) == 1
 }
 
 func IPAllowed(ip string, allowList []string) bool {
