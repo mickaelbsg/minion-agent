@@ -45,7 +45,7 @@ func main() {
 	if len(subcommands) > 0 {
 		switch subcommands[0] {
 		case "setup":
-			setup()
+			setup(*configPath, *clientName, *clientIPs)
 			return
 		case "client":
 			cmdArgs := []string{}
@@ -84,7 +84,7 @@ func main() {
 	}
 }
 
-func setup() {
+func setup(configPath, clientName, clientIPs string) {
 	if os.Geteuid() != 0 {
 		log.Fatal("setup must be run as root. Use: sudo minion setup")
 	}
@@ -105,20 +105,66 @@ func setup() {
 		}
 		log.Printf("Generated self-signed TLS cert at %s", certPath)
 	}
-	if _, err := os.Stat("/etc/minion/config.json"); os.IsNotExist(err) {
-		src := "config.example.json"
-		if _, err := os.Stat(src); err == nil {
-			data, _ := os.ReadFile(src)
-			if err := os.WriteFile("/etc/minion/config.json", data, 0644); err != nil {
-				log.Fatalf("failed to write config.json: %v", err)
-			}
-			log.Printf("Wrote default config to /etc/minion/config.json")
+
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+	if err := os.Chmod(configPath, 0600); err != nil {
+		log.Printf("warning: failed to set config permissions: %v", err)
+	}
+
+	stor, err := storage.New(cfg.DBPath)
+	if err != nil {
+		log.Fatalf("failed to initialise storage: %v", err)
+	}
+	if err := os.Chmod(cfg.DBPath, 0600); err != nil {
+		log.Printf("warning: failed to set database permissions: %v", err)
+	}
+
+	clients, err := stor.GetClients()
+	if err != nil {
+		log.Fatalf("failed to list clients: %v", err)
+	}
+
+	var generatedKey string
+	createdClient := ""
+	createdIPs := ""
+	if len(clients) == 0 {
+		createdClient = clientName
+		if createdClient == "" {
+			createdClient = "default"
+		}
+		createdIPs = clientIPs
+		if createdIPs == "" {
+			createdIPs = "127.0.0.1/32"
+		}
+
+		key, err := security.GenerateAPIKey()
+		if err != nil {
+			log.Fatalf("failed to generate API key: %v", err)
+		}
+		generatedKey = key
+		hash := security.HashAPIKey(key)
+		if err := stor.InsertClient(createdClient, createdIPs, hash); err != nil {
+			log.Fatalf("failed to create bootstrap client: %v", err)
 		}
 	}
+
 	if err := exec.Command("systemctl", "enable", "--now", "minion.service").Run(); err != nil {
 		log.Printf("warning: failed to enable/start systemd service: %v", err)
 	} else {
 		log.Printf("systemd minion.service enabled and started")
+	}
+
+	fmt.Println("\nMinion setup completed.")
+	if generatedKey != "" {
+		fmt.Printf("Bootstrap client: %s\n", createdClient)
+		fmt.Printf("Allowed IPs: %s\n", createdIPs)
+		fmt.Printf("API Key: %s\n", generatedKey)
+		fmt.Println("\nStore this API key now. It is shown only once and only its hash is stored.")
+	} else {
+		fmt.Println("Existing API clients found. No new bootstrap API key was generated.")
 	}
 }
 
@@ -145,7 +191,10 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		if name == "" || ips == "" {
 			log.Fatal("--name and --ips are required. Example: minion add client --name severino --ips 127.0.0.1/32")
 		}
-		key, _ := security.GenerateAPIKey()
+		key, err := security.GenerateAPIKey()
+		if err != nil {
+			log.Fatalf("failed to generate API key: %v", err)
+		}
 		hash := security.HashAPIKey(key)
 		if err := stor.InsertClient(name, ips, hash); err != nil {
 			log.Fatalf("failed to create client: %v", err)
