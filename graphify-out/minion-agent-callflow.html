@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>minion-agent — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>minion-agent — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 133 nodes, 233 edges, 23 communities. Commit: e4a9651</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#extract-pipeline">Extraction Pipeline</a>
+    <a href="#build-graph">Graph Build</a>
+    <a href="#cli-skills">CLI &amp; Skill Installers</a>
+    <a href="#graphify-nvidia-sh">graphify-nvidia.sh</a>
+    <a href="#minion">minion</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>120 nodes</small>")
+    class EXTRACT_PIPELINE_5F350230 module;
+    BUILD_GRAPH_321CBB04("Graph Build<br/><small>2 nodes</small>")
+    class BUILD_GRAPH_321CBB04 module;
+    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>8 nodes</small>")
+    class CLI_SKILLS_9964CBB8 module;
+    GRAPHIFY_NVIDIA_SH_6284A75C("graphify-nvidia.sh<br/><small>2 nodes</small>")
+    class GRAPHIFY_NVIDIA_SH_6284A75C module;
+    MINION_77E4C401("minion<br/><small>1 nodes</small>")
+    class MINION_77E4C401 module;
+    EXTRACT_PIPELINE_5F350230 -.-> BUILD_GRAPH_321CBB04
+    BUILD_GRAPH_321CBB04 -.-> CLI_SKILLS_9964CBB8
+    CLI_SKILLS_9964CBB8 -.-> GRAPHIFY_NVIDIA_SH_6284A75C
+    GRAPHIFY_NVIDIA_SH_6284A75C -.-> MINION_77E4C401
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Extraction Pipeline</td><td>120</td><td><code>0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 20</code></td></tr><tr><td>Graph Build</td><td>2</td><td><code>19</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>8</td><td><code>10, 11</code></td></tr><tr><td>graphify-nvidia.sh</td><td>2</td><td><code>21</code></td></tr><tr><td>minion</td><td>1</td><td><code>22</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; CLI &amp; Skill Installers -&gt; graphify-nvidia.sh -&gt; minion</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>133 nodes · 233 edges · 23 communities (12 shown, 11 thin omitted)</li>
+      <li>Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 32 edges (avg confidence: 0.8)</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `Server` - 22 edges</li>
+      <li>2. `Storage` - 10 edges</li>
+      <li>3. `HashAPIKey()` - 6 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Extraction Pipeline ====== -->
+<h2 id="extract-pipeline">2. Extraction Pipeline</h2>
+<p>Extraction Pipeline groups implementation around internal, collectors, server, servergo, mostly in internal/server/server.go, internal/server/middleware.go, internal/storage/storage.go. This section covers 120 nodes and 223 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Extraction Pipeline (120 nodes, 223 edges)
+    subgraph extract_pipeline_cmd_minion_main_go_71759637["cmd/minion/main.go"]
+        cmd_minion_main_main_63104f8e("main()<br/><small>cmd/minion/main.go</small>")
+        cmd_minion_main_handleclientcommands_478ab345("handleClientCommands()<br/><small>cmd/minion/main.go</small>")
+        cmd_minion_main_setup_74c9e499("setup()<br/><small>cmd/minion/main.go</small>")
+    end
+    subgraph extract_pipeline_internal_server_server_go_bb668acb["internal/server/server.go"]
+        internal_server_server_go_server_server_a2463d5c("Server<br/><small>internal/server/server.go</small>")
+        server_server_handledisk_f0babb87("handleDisk()<br/><small>internal/server/server.go</small>")
+        server_server_handlefail2ban_8d88d431("handleFail2Ban()<br/><small>internal/server/server.go</small>")
+    end
+    subgraph extract_pipeline_internal_collectors_iptables_go_b8fb9ca6["internal/collectors/iptables.go"]
+        internal_collectors_iptables_getiptablesrules_33618f76("GetIPTablesRules()<br/><small>internal/collectors/iptables.go</small>")
+        internal_collectors_iptables_parseiptablesrules_3c2fa7dd("ParseIPTablesRules()<br/><small>internal/collectors/iptables.go</small>")
+    end
+    subgraph extract_pipeline_internal_collectors_journal_go_969f74c1["internal/collectors/journal.go"]
+        internal_collectors_journal_getjournallogs_c86292e7("GetJournalLogs()<br/><small>internal/collectors/journal.go</small>")
+        internal_collectors_journal_parsejournallogs_93503085("ParseJournalLogs()<br/><small>internal/collectors/journal.go</small>")
+    end
+    subgraph extract_pipeline_internal_collectors_logins_go_64928412["internal/collectors/logins.go"]
+        internal_collectors_logins_getlogins_1cc8cc50("GetLogins()<br/><small>internal/collectors/logins.go</small>")
+        internal_collectors_logins_findisotimestampindex_ac18e032("findISOTimestampIndex()<br/><small>internal/collectors/logins.go</small>")
+    end
+    subgraph extract_pipeline_internal_collectors_sudo_go_296d9ee6["internal/collectors/sudo.go"]
+        internal_collectors_sudo_getsudoevents_c4183891("GetSudoEvents()<br/><small>internal/collectors/sudo.go</small>")
+        internal_collectors_sudo_parsesudoevents_ae72ea73("ParseSudoEvents()<br/><small>internal/collectors/sudo.go</small>")
+    end
+    subgraph extract_pipeline_internal_collectors_users_go_8986bba2["internal/collectors/users.go"]
+        internal_collectors_users_getusers_604ce14e("GetUsers()<br/><small>internal/collectors/users.go</small>")
+        internal_collectors_users_ishumanuser_8481197d("isHumanUser()<br/><small>internal/collectors/users.go</small>")
+    end
+    server_statusrecorder_5e600c6b("statusRecorder<br/><small>internal/server/middleware.go</small>")
+    storage_storage_1cce48c6("Storage<br/><small>internal/storage/storage.go</small>")
+    cmd_minion_main_main_63104f8e -->|calls| cmd_minion_main_handleclientcommands_478ab345
+    cmd_minion_main_main_63104f8e -->|calls| cmd_minion_main_setup_74c9e499
+    internal_collectors_iptables_getiptablesrules_33618f76 -->|calls| internal_collectors_iptables_parseiptablesrules_3c2fa7dd
+    internal_collectors_journal_getjournallogs_c86292e7 -->|calls| internal_collectors_journal_parsejournallogs_93503085
+    internal_collectors_logins_getlogins_1cc8cc50 -->|calls| internal_collectors_logins_findisotimestampindex_ac18e032
+    internal_collectors_sudo_getsudoevents_c4183891 -->|calls| internal_collectors_sudo_parsesudoevents_ae72ea73
+    internal_collectors_users_getusers_604ce14e -->|calls| internal_collectors_users_ishumanuser_8481197d
+    internal_server_server_go_server_server_a2463d5c -->|method| server_server_handledisk_f0babb87
+    internal_server_server_go_server_server_a2463d5c -->|method| server_server_handlefail2ban_8d88d431
+    %% Omitted for readability: 102 nodes, 0 edges
+    class cmd_minion_main_main_63104f8e function;
+    class cmd_minion_main_handleclientcommands_478ab345 entry;
+    class cmd_minion_main_setup_74c9e499 function;
+    class internal_server_server_go_server_server_a2463d5c klass;
+    class server_server_handledisk_f0babb87 function;
+    class server_server_handlefail2ban_8d88d431 function;
+    class internal_collectors_iptables_getiptablesrules_33618f76 function;
+    class internal_collectors_iptables_parseiptablesrules_3c2fa7dd function;
+    class internal_collectors_journal_getjournallogs_c86292e7 function;
+    class internal_collectors_journal_parsejournallogs_93503085 function;
+    class internal_collectors_logins_getlogins_1cc8cc50 function;
+    class internal_collectors_logins_findisotimestampindex_ac18e032 function;
+    class internal_collectors_sudo_getsudoevents_c4183891 function;
+    class internal_collectors_sudo_parsesudoevents_ae72ea73 function;
+    class internal_collectors_users_getusers_604ce14e function;
+    class internal_collectors_users_ishumanuser_8481197d function;
+    class server_statusrecorder_5e600c6b function;
+    class storage_storage_1cce48c6 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>main.go</code><br><small style="color:var(--muted)">cmd/check/main.go</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main.go node in cmd/check/main.go.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">cmd/check/main.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td>main() node in cmd/check/main.go.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>main.go</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main.go node in cmd/minion/main.go.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small><br><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td>main() node in cmd/minion/main.go.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><code>GenerateAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small></td>
+  <td>setup() node in cmd/minion/main.go.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><code>GenerateAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small></td>
+  <td>handleClientCommands() node in cmd/minion/main.go.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>main.go</code><br><small style="color:var(--muted)">cmd/verify/main.go</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main.go node in cmd/verify/main.go.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">cmd/verify/main.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td>main() node in cmd/verify/main.go.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td>No direct outbound edge</td>
+  <td>Load() node in internal/config/config.go.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>security.go</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>security.go node in internal/security/security.go.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>GenerateAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td>No direct outbound edge</td>
+  <td>GenerateAPIKey() node in internal/security/security.go.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/verify/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/check/main.go</small><br>+1 more</td>
+  <td><code>TestHashAndVerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">cmd/verify/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/check/main.go</small></td>
+  <td><code>auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>TestHashAndVerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
+  <td>VerifyAPIKey() node in internal/security/security.go.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>IPAllowed()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>TestIPAllowed()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
+  <td>IPAllowed() node in internal/security/security.go.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>security_test.go</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>TestHashAndVerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td>No direct outbound edge</td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>T</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>T node in project.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>TestIPAllowed()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>IPAllowed()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td>No direct outbound edge</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>.auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>IPAllowed()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>setClientNameOnWriter()</code><br><small style="color:var(--muted)">internal/server/middleware.go</small><br>+3 more</td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.auth() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>HandlerFunc</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>HandlerFunc node in project.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>handleDisk()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>handleFail2Ban()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br>+15 more</td>
+  <td>Server node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>.handleHealth()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleHealth() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>ResponseWriter</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>ResponseWriter node in project.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Request</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Request node in project.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>.handleSystem()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>GetSystem()</code><br><small style="color:var(--muted)">internal/collectors/system.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleSystem() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>.handleUsers()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>GetUsers()</code><br><small style="color:var(--muted)">internal/collectors/users.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleUsers() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>.handleServices()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>GetServices()</code><br><small style="color:var(--muted)">internal/collectors/services.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleServices() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>.handleFail2Ban()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>GetFail2BanEvents()</code><br><small style="color:var(--muted)">internal/collectors/fail2ban.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleFail2Ban() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>.handleFail2BanUnban()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleFail2BanUnban() node in internal/server/server.go.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>.handleIPBlock()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>IsIPBlocked()</code><br><small style="color:var(--muted)">internal/collectors/ipblock.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>.handleIPBlock() node in internal/server/server.go.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>internal/server/server.go</code></td><td>22 nodes</td></tr>
+<tr><td><code>internal/server/middleware.go</code></td><td>11 nodes</td></tr>
+<tr><td><code>internal/storage/storage.go</code></td><td>10 nodes</td></tr>
+<tr><td><code>internal/security/security.go</code></td><td>5 nodes</td></tr>
+<tr><td><code>cmd/minion/main.go</code></td><td>4 nodes</td></tr>
+<tr><td><code>internal/collectors/iptables.go</code></td><td>4 nodes</td></tr>
+<tr><td><code>internal/collectors/journal.go</code></td><td>4 nodes</td></tr>
+<tr><td><code>internal/collectors/logins.go</code></td><td>4 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: references x65, contains x59, calls x40, method x26. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Graph Build ====== -->
+<h2 id="build-graph">3. Graph Build</h2>
+<p>Graph Build groups implementation around build, debsh, script, mostly in build_deb.sh. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Graph Build (2 nodes, 1 edges)
+    build_deb_56dde93b("build_deb.sh")
+    build_deb_sh_entry_0a555536("build_deb.sh script<br/><small>build_deb.sh</small>")
+    build_deb_56dde93b -->|contains| build_deb_sh_entry_0a555536
+    class build_deb_56dde93b function;
+    class build_deb_sh_entry_0a555536 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>build_deb.sh</code><br><small style="color:var(--muted)">build_deb.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>build_deb.sh node in build_deb.sh.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>build_deb.sh script</code><br><small style="color:var(--muted)">build_deb.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>build_deb.sh script node in build_deb.sh.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>build_deb.sh</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. CLI & Skill Installers ====== -->
+<h2 id="cli-skills">4. CLI &amp; Skill Installers</h2>
+<p>CLI &amp; Skill Installers groups implementation around installsh, install, minionsh, script, mostly in install.sh, install_minion.sh. This section covers 8 nodes and 8 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: CLI &amp; Skill Installers (8 nodes, 8 edges)
+    subgraph cli_skills_install_sh_d5f728cd["install.sh"]
+        install_sh_entry_0b61c65f("install.sh script<br/><small>install.sh</small>")
+        install_log_f3adc366("log()<br/><small>install.sh</small>")
+        install_go111module_db3a28ba("GO111MODULE<br/><small>install.sh</small>")
+        install_89fb511f("install.sh")
+    end
+    subgraph cli_skills_install_minion_sh_08775a03["install_minion.sh"]
+        install_minion_sh_entry_759ad785("install_minion.sh script<br/><small>install_minion.sh</small>")
+        install_minion_log_350de6bc("log()<br/><small>install_minion.sh</small>")
+        install_minion_go111module_c5ff5c83("GO111MODULE<br/><small>install_minion.sh</small>")
+        install_minion_e8146edf("install_minion.sh")
+    end
+    install_sh_entry_0b61c65f -->|calls| install_log_f3adc366
+    install_minion_sh_entry_759ad785 -->|calls| install_minion_log_350de6bc
+    class install_sh_entry_0b61c65f function;
+    class install_log_f3adc366 function;
+    class install_go111module_db3a28ba klass;
+    class install_89fb511f function;
+    class install_minion_sh_entry_759ad785 function;
+    class install_minion_log_350de6bc function;
+    class install_minion_go111module_c5ff5c83 klass;
+    class install_minion_e8146edf function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>install.sh</code><br><small style="color:var(--muted)">install.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>install.sh node in install.sh.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>install.sh script</code><br><small style="color:var(--muted)">install.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>log()</code><br><small style="color:var(--muted)">install.sh</small></td>
+  <td>install.sh script node in install.sh.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>log()</code><br><small style="color:var(--muted)">install.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>install.sh script</code><br><small style="color:var(--muted)">install.sh</small></td>
+  <td>No direct outbound edge</td>
+  <td>log() node in install.sh.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>GO111MODULE</code><br><small style="color:var(--muted)">install.sh</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>GO111MODULE node in install.sh.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>install_minion.sh</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>install_minion.sh node in install_minion.sh.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>install_minion.sh script</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>log()</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
+  <td>install_minion.sh script node in install_minion.sh.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>log()</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>install_minion.sh script</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
+  <td>No direct outbound edge</td>
+  <td>log() node in install_minion.sh.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>GO111MODULE</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>GO111MODULE node in install_minion.sh.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>install.sh</code></td><td>4 nodes</td></tr>
+<tr><td><code>install_minion.sh</code></td><td>4 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: defines x4, contains x2, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. graphify-nvidia.sh ====== -->
+<h2 id="graphify-nvidia-sh">5. graphify-nvidia.sh</h2>
+<p>graphify-nvidia.sh groups implementation around graphify, nvidiash, scripts, script, mostly in scripts/graphify-nvidia.sh. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: graphify-nvidia.sh (2 nodes, 1 edges)
+    scripts_graphify_nvidia_e80daef7("graphify-nvidia.sh")
+    scripts_graphify_nvidia_sh_entry_7be9b0f4("graphify-nvidia.sh script<br/><small>scripts/graphify-nvidia.sh</small>")
+    scripts_graphify_nvidia_e80daef7 -->|contains| scripts_graphify_nvidia_sh_entry_7be9b0f4
+    class scripts_graphify_nvidia_e80daef7 function;
+    class scripts_graphify_nvidia_sh_entry_7be9b0f4 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>graphify-nvidia.sh</code><br><small style="color:var(--muted)">scripts/graphify-nvidia.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Builds dependency relationships and graph data.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>graphify-nvidia.sh script</code><br><small style="color:var(--muted)">scripts/graphify-nvidia.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Builds dependency relationships and graph data.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>scripts/graphify-nvidia.sh</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. minion ====== -->
+<h2 id="minion">6. minion</h2>
+<p>minion groups implementation around minion, gomod, mostly in go.mod. This section covers 1 nodes and 0 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: minion (1 nodes, 0 edges)
+    pkg_minion_a30d67b5("minion<br/><small>go.mod</small>")
+    class pkg_minion_a30d67b5 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>minion</code><br><small style="color:var(--muted)">go.mod</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>minion node in go.mod.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>go.mod</code></td><td>1 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: No high-confidence call edges detected. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>133</td></tr>
+      <tr><td>Edges</td><td>233</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>23</td></tr>
+      <tr><td>Documented Sections</td><td>5</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>201</td></tr>
+      <tr><td>INFERRED</td><td>32</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>minion-agent — Architecture Documentation</p>
+  <p>Generated: 2026-07-04 01:12 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>

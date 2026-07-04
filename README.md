@@ -221,6 +221,27 @@ Caminho padrão:
 /opt/minion/minion.db
 ```
 
+## Graphify via NVIDIA
+
+Para rodar o `graphify` deste projeto usando o endpoint compatível com OpenAI da NVIDIA, use o wrapper local:
+
+```bash
+./scripts/graphify-nvidia.sh extract . --no-cluster
+./scripts/graphify-nvidia.sh label .
+./scripts/graphify-nvidia.sh query "How does Server connect the project?"
+```
+
+O wrapper carrega variáveis de `.graphify.env.local` e define por padrão:
+
+```text
+OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
+OPENAI_MODEL=openai/gpt-oss-20b
+```
+
+O provider customizado do `graphify` fica em `.graphify/providers.json` e desabilita thinking com `chat_template_kwargs.enable_thinking=false`, para a NVIDIA retornar texto em `message.content`, que é o formato esperado pelo `graphify`.
+
+O arquivo versionado é `.graphify.env.example`. O arquivo `.graphify.env.local` fica fora do Git.
+
 ## 10. Gerenciamento de clientes
 
 O Minion controla acesso por cliente.
