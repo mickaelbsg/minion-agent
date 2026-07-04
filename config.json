@@ -1,6 +1,6 @@
 {
   "api": {
-    "bind": "0.0.0.0:9871"
+    "bind": "0.0.0.0:9870"
   },
   "db_path": "/home/pc/minion/minion.db",
   "clients": [

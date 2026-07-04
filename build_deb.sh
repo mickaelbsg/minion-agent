@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build a Debian package for Minion Agent
-set -e
+set -euo pipefail
 
 PKG_NAME="minion"
 PKG_VER="1.0.0"
@@ -61,7 +61,7 @@ chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 # ---- Binary ----
 if [[ ! -f "$(pwd)/minion" ]]; then
   echo "Compiling minion binary..."
-  go build -o minion ./cmd/minion/main.go
+  go build -o minion ./cmd/minion
 fi
 cp "$(pwd)/minion" "$DEB_ROOT/usr/local/bin/minion"
 chmod 755 "$DEB_ROOT/usr/local/bin/minion"
@@ -70,9 +70,9 @@ chmod 755 "$DEB_ROOT/usr/local/bin/minion"
 if [[ -f "config.example.json" ]]; then
   cp "config.example.json" "$DEB_ROOT/etc/minion/config.json"
 else
-  echo "{\"api\": {\"bind\": \"0.0.0.0:9870\"}, \"db_path\": \"/etc/minion/minion.db\"}" > "$DEB_ROOT/etc/minion/config.json"
+  echo "{\"api\": {\"bind\": \"0.0.0.0:9870\", \"allow_insecure_http\": false}, \"db_path\": \"/opt/minion/minion.db\", \"clients\": []}" > "$DEB_ROOT/etc/minion/config.json"
 fi
-chmod 644 "$DEB_ROOT/etc/minion/config.json"
+chmod 600 "$DEB_ROOT/etc/minion/config.json"
 
 # ---- systemd service ----
 if [[ -f "systemd/minion.service" ]]; then

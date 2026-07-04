@@ -123,7 +123,7 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 	switch cmd {
 	case "create":
 		if name == "" || ips == "" {
-			log.Fatal("--name and --ips are required. Example: minion add client --name severino --ips 127.0.0.1/32")
+			log.Fatal("--name and --ips are required. Example: minion client create --name severino --ips 127.0.0.1/32")
 		}
 		client, err := service.CreateClient(name, ips)
 		if err != nil {

@@ -16,6 +16,8 @@ set -euo pipefail
 # Helper for logging
 log(){ echo "[install] $*"; }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Ensure we are root (or using sudo for privileged actions)
 if [[ "$EUID" -ne 0 ]]; then
   log "This installer must be run as root (or via sudo)."
@@ -30,7 +32,7 @@ apt-get install -y $DEPS > /dev/null
 
 # 2. Build the binary
 log "Building Minion binary..."
-cd /home/pc/projetos/minion-agent
+cd "$SCRIPT_DIR"
 # Ensure Go environment is clean
 export GO111MODULE=on
 go build -o minion ./cmd/minion
@@ -41,7 +43,7 @@ mkdir -p /etc/minion
 # Copy example config if not present
 if [[ ! -f /etc/minion/config.json ]]; then
   cp config.example.json /etc/minion/config.json
-  chmod 644 /etc/minion/config.json
+  chmod 600 /etc/minion/config.json
 fi
 
 # 4. Generate TLS certs (self‑signed) if missing
@@ -86,4 +88,4 @@ systemctl enable --now minion.service
 
 log "Installation complete!"
 log "Check status with: systemctl status minion.service"
-log "Health endpoint: https://localhost:9871/api/v1/health"
+log "Health endpoint: https://localhost:9870/api/v1/health"

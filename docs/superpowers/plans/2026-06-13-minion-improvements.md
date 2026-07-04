@@ -365,7 +365,7 @@ sudo systemctl status minion.service
 - [ ] **Step 3: Verify service runs and health endpoint works**
 
 ```bash
-curl -s http://localhost:9871/health | jq .
+curl -sk https://localhost:9870/api/v1/health | jq .
 ```
 Expected JSON with `{ "status": "ok" }`.
 

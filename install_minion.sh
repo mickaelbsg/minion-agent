@@ -20,6 +20,8 @@ set -euo pipefail
 
 log(){ echo "[install-minion] $*"; }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # -----------------------------------------------------------------
 # 0. Verify we are running as root (required for installing files and
 #    writing to /etc/systemd/system).
@@ -33,10 +35,8 @@ fi
 # 1. Build the binary
 # -----------------------------------------------------------------
 log "Building Minion binary..."
-cd /home/pc/projetos/minion-agent
+cd "$SCRIPT_DIR"
 export GO111MODULE=on
-# Clean any previous build artifacts
-go clean -modcache
 # Build the binary
 go build -o minion ./cmd/minion
 log "Binary built at $(pwd)/minion"
@@ -57,7 +57,7 @@ mkdir -p /etc/minion
 if [[ ! -f /etc/minion/config.json ]]; then
   if [[ -f config.example.json ]]; then
     cp config.example.json /etc/minion/config.json
-    chmod 644 /etc/minion/config.json
+    chmod 600 /etc/minion/config.json
     log "Copied example config to /etc/minion/config.json"
   else
     log "WARNING: No config.example.json found – you must create /etc/minion/config.json manually."
@@ -113,4 +113,4 @@ systemctl enable --now minion.service
 
 log "Installation complete!"
 log "Check service status:   systemctl status minion.service"
-log "Health endpoint (no auth needed):   curl -k https://localhost:9871/api/v1/health"
+log "Health endpoint (no auth needed):   curl -k https://localhost:9870/api/v1/health"
