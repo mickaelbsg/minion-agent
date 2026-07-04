@@ -132,6 +132,8 @@ Componentes principais:
 - `internal/security`: geração e validação de API keys e allowlist de IP.
 - `internal/storage`: SQLite, clientes autorizados e auditoria.
 - `internal/config`: carregamento de configuração.
+- `internal/admin`: camada administrativa reutilizável para setup, config, clientes e inspeção de estado.
+- `internal/ui`: wizard interativo em terminal para operadores humanos.
 
 ## 7. Requisitos
 
@@ -206,7 +208,8 @@ Exemplo:
 ```json
 {
   "api": {
-    "bind": "0.0.0.0:9870"
+    "bind": "0.0.0.0:9870",
+    "allow_insecure_http": false
   },
   "db_path": "/opt/minion/minion.db",
   "clients": []
@@ -253,11 +256,33 @@ Cada cliente possui:
 - API key.
 - Hash da API key.
 - Status ativo/inativo.
+- Clientes no SQLite são a fonte principal de autenticação. O campo `clients` no arquivo de configuração existe como fallback de compatibilidade para ambientes sem clientes persistidos no banco.
+
+### UI interativa
+
+Para operadores humanos, o Minion agora oferece um wizard guiado:
+
+```bash
+sudo minion ui
+```
+
+Também é possível abrir uma seção específica:
+
+```bash
+sudo minion ui --section setup
+sudo minion ui --section config
+sudo minion ui --section clients
+minion ui --section status
+```
+
+A UI exige TTY e não substitui os comandos existentes; `setup` e `client ...` continuam disponíveis para automação e uso não interativo.
+
+Para ações que exigem escrita em `/etc/minion`, gerenciamento de TLS, alteração de clientes ou interação com `systemctl`, use a UI com `sudo`.
 
 Criar cliente:
 
 ```bash
-sudo minion add client --name severino --ips 192.168.56.2/32
+sudo minion client create --name severino --ips 192.168.56.2/32
 ```
 
 Saída esperada:
@@ -269,6 +294,8 @@ API Key Hash: xxxxxxxxxxxxxxxxx
 ```
 
 A API key deve ser copiada no momento da criação. O Minion armazena apenas o hash.
+
+`minion add client --name ... --ips ...` continua aceito como atalho de compatibilidade, mas `minion client create` é o comando principal recomendado.
 
 Listar clientes:
 
@@ -625,7 +652,8 @@ Crie o arquivo `packaging/minion/etc/minion/config.json`:
 ```json
 {
   "api": {
-    "bind": "0.0.0.0:9870"
+    "bind": "0.0.0.0:9870",
+    "allow_insecure_http": false
   },
   "db_path": "/opt/minion/minion.db",
   "clients": []
@@ -655,7 +683,7 @@ Ajuste permissões:
 
 ```bash
 chmod 0644 packaging/minion/DEBIAN/control
-chmod 0644 packaging/minion/etc/minion/config.json
+chmod 0600 packaging/minion/etc/minion/config.json
 chmod 0644 packaging/minion/lib/systemd/system/minion.service
 ```
 

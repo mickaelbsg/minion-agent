@@ -65,6 +65,16 @@ func initSchema(db *sql.DB) error {
 	if _, err := db.Exec(createAudit); err != nil {
 		return err
 	}
+	createAuditIndexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit(timestamp);`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_client_name ON audit(client_name);`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_path ON audit(path);`,
+	}
+	for _, stmt := range createAuditIndexes {
+		if _, err := db.Exec(stmt); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

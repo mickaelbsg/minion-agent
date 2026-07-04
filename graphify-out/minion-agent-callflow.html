@@ -60,15 +60,25 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>minion-agent — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 133 nodes, 233 edges, 23 communities. Commit: e4a9651</p>
+<p class="subtitle">Generated from graphify knowledge graph: 426 nodes, 678 edges, 35 communities. Commit: af859f5</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
     <a href="#extract-pipeline">Extraction Pipeline</a>
     <a href="#build-graph">Graph Build</a>
     <a href="#cli-skills">CLI &amp; Skill Installers</a>
-    <a href="#graphify-nvidia-sh">graphify-nvidia.sh</a>
-    <a href="#minion">minion</a>
+    <a href="#serve-api">Serving API</a>
+    <a href="#config">Config</a>
+    <a href="#isipblocked">IsIPBlocked</a>
+    <a href="#12-endpoints">12. Endpoints</a>
+    <a href="#repository-guidelines">Repository Guidelines</a>
+    <a href="#adr-011-princ-pio-do-privil-gio-m-nimo-e-deny-by">ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default</a>
+    <a href="#alternativas-consideradas">Alternativas Consideradas</a>
+    <a href="#alternativas-consideradas-5a7930">Alternativas Consideradas</a>
+    <a href="#alternativas-consideradas-2">Alternativas Consideradas</a>
+    <a href="#alternativas-consideradas-3">Alternativas Consideradas</a>
+    <a href="#consequ-ncias">Consequências</a>
+    <a href="#other">Other</a>
 </div>
 
 <!-- ====== Architecture Overview ====== -->
@@ -78,20 +88,42 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>120 nodes</small>")
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>219 nodes</small>")
     class EXTRACT_PIPELINE_5F350230 module;
     BUILD_GRAPH_321CBB04("Graph Build<br/><small>2 nodes</small>")
     class BUILD_GRAPH_321CBB04 module;
-    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>8 nodes</small>")
+    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>27 nodes</small>")
     class CLI_SKILLS_9964CBB8 module;
-    GRAPHIFY_NVIDIA_SH_6284A75C("graphify-nvidia.sh<br/><small>2 nodes</small>")
-    class GRAPHIFY_NVIDIA_SH_6284A75C module;
-    MINION_77E4C401("minion<br/><small>1 nodes</small>")
-    class MINION_77E4C401 module;
-    EXTRACT_PIPELINE_5F350230 -.-> BUILD_GRAPH_321CBB04
-    BUILD_GRAPH_321CBB04 -.-> CLI_SKILLS_9964CBB8
-    CLI_SKILLS_9964CBB8 -.-> GRAPHIFY_NVIDIA_SH_6284A75C
-    GRAPHIFY_NVIDIA_SH_6284A75C -.-> MINION_77E4C401
+    SERVE_API_35EC8E86("Serving API<br/><small>57 nodes</small>")
+    class SERVE_API_35EC8E86 module;
+    CONFIG_DFBA7AAD("Config<br/><small>44 nodes</small>")
+    class CONFIG_DFBA7AAD module;
+    ISIPBLOCKED_C836F1DE("IsIPBlocked<br/><small>24 nodes</small>")
+    class ISIPBLOCKED_C836F1DE module;
+    SECTION_12_ENDPOINTS_72DBA9A3("12. Endpoints<br/><small>15 nodes</small>")
+    class SECTION_12_ENDPOINTS_72DBA9A3 module;
+    REPOSITORY_GUIDELINES_F2F06739("Repository Guidelines<br/><small>9 nodes</small>")
+    class REPOSITORY_GUIDELINES_F2F06739 module;
+    ADR_011_PRINC_PIO_DO_PRIVIL_GIO_M_NIMO_E_DENY_BY_59C20FAA("ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default<br/><small>9 nodes</small>")
+    class ADR_011_PRINC_PIO_DO_PRIVIL_GIO_M_NIMO_E_DENY_BY_59C20FAA module;
+    ALTERNATIVAS_CONSIDERADAS_61F3F428("Alternativas Consideradas<br/><small>4 nodes</small>")
+    class ALTERNATIVAS_CONSIDERADAS_61F3F428 module;
+    ALTERNATIVAS_CONSIDERADAS_5A7930_40E1A2AC("Alternativas Consideradas<br/><small>3 nodes</small>")
+    class ALTERNATIVAS_CONSIDERADAS_5A7930_40E1A2AC module;
+    ALTERNATIVAS_CONSIDERADAS_2_1FAE500A("Alternativas Consideradas<br/><small>3 nodes</small>")
+    class ALTERNATIVAS_CONSIDERADAS_2_1FAE500A module;
+    ALTERNATIVAS_CONSIDERADAS_3_B450B69F("Alternativas Consideradas<br/><small>3 nodes</small>")
+    class ALTERNATIVAS_CONSIDERADAS_3_B450B69F module;
+    CONSEQU_NCIAS_FB5AAE5B("Consequências<br/><small>3 nodes</small>")
+    class CONSEQU_NCIAS_FB5AAE5B module;
+    OTHER_D0941E68("Other<br/><small>4 nodes</small>")
+    class OTHER_D0941E68 module;
+    CONFIG_DFBA7AAD -->|contains| ALTERNATIVAS_CONSIDERADAS_5A7930_40E1A2AC
+    CONFIG_DFBA7AAD -->|contains| ALTERNATIVAS_CONSIDERADAS_2_1FAE500A
+    CONFIG_DFBA7AAD -->|contains| ALTERNATIVAS_CONSIDERADAS_3_B450B69F
+    CONFIG_DFBA7AAD -->|contains| ALTERNATIVAS_CONSIDERADAS_61F3F428
+    CONFIG_DFBA7AAD -->|contains| CONSEQU_NCIAS_FB5AAE5B
+    ISIPBLOCKED_C836F1DE -->|contains| SECTION_12_ENDPOINTS_72DBA9A3
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -108,95 +140,95 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Extraction Pipeline</td><td>120</td><td><code>0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 20</code></td></tr><tr><td>Graph Build</td><td>2</td><td><code>19</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>8</td><td><code>10, 11</code></td></tr><tr><td>graphify-nvidia.sh</td><td>2</td><td><code>21</code></td></tr><tr><td>minion</td><td>1</td><td><code>22</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>219</td><td><code>16, 1, 17, 0, 2, 3, 15, 5, 6, 7, 8, 9, 12, 13, 14</code></td></tr><tr><td>Graph Build</td><td>2</td><td><code>19</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>27</td><td><code>25, 29, 10, 11</code></td></tr><tr><td>Serving API</td><td>57</td><td><code>24, 26</code></td></tr><tr><td>Config</td><td>44</td><td><code>4</code></td></tr><tr><td>IsIPBlocked</td><td>24</td><td><code>20</code></td></tr><tr><td>12. Endpoints</td><td>15</td><td><code>23</code></td></tr><tr><td>Repository Guidelines</td><td>9</td><td><code>27</code></td></tr><tr><td>ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default</td><td>9</td><td><code>28</code></td></tr><tr><td>Alternativas Consideradas</td><td>4</td><td><code>35</code></td></tr><tr><td>Alternativas Consideradas</td><td>3</td><td><code>37</code></td></tr><tr><td>Alternativas Consideradas</td><td>3</td><td><code>38</code></td></tr><tr><td>Alternativas Consideradas</td><td>3</td><td><code>39</code></td></tr><tr><td>Consequências</td><td>3</td><td><code>40</code></td></tr><tr><td>Other</td><td>4</td><td><code>21, 22, 41</code></td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Core Flow</h4>
-    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; CLI &amp; Skill Installers -&gt; graphify-nvidia.sh -&gt; minion</div>
+    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; CLI &amp; Skill Installers -&gt; Serving API -&gt; Config -&gt; Consequências -&gt; IsIPBlocked</div>
   </div>
 </div>
 <div class="grid">
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>133 nodes · 233 edges · 23 communities (12 shown, 11 thin omitted)</li>
-      <li>Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 32 edges (avg confidence: 0.8)</li>
+      <li>426 nodes · 678 edges · 35 communities (29 shown, 6 thin omitted)</li>
+      <li>Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.8)</li>
       <li>Token cost: 0 input · 0 output</li>
-      <li>1. `Server` - 22 edges</li>
-      <li>2. `Storage` - 10 edges</li>
-      <li>3. `HashAPIKey()` - 6 edges</li>
+      <li>1. `Model` - 41 edges</li>
+      <li>2. `Server` - 23 edges</li>
+      <li>3. `Minion Agent` - 23 edges</li>
     </ul>
   </div>
 </div>
 <hr>
 <!-- ====== 2. Extraction Pipeline ====== -->
 <h2 id="extract-pipeline">2. Extraction Pipeline</h2>
-<p>Extraction Pipeline groups implementation around internal, collectors, server, servergo, mostly in internal/server/server.go, internal/server/middleware.go, internal/storage/storage.go. This section covers 120 nodes and 223 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Extraction Pipeline groups implementation around internal, collectors, uigo, server, mostly in internal/ui/ui.go, internal/server/server.go, internal/admin/service.go. This section covers 219 nodes and 482 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Extraction Pipeline (120 nodes, 223 edges)
+    %% Section: Extraction Pipeline (219 nodes, 482 edges)
+    subgraph extract_pipeline_internal_admin_service_go_31c79dc2["internal/admin/service.go"]
+        admin_service_2a1e7fc9("Service<br/><small>internal/admin/service.go</small>")
+        admin_execrunner_0a225cc3("execRunner<br/><small>internal/admin/service.go</small>")
+        admin_execrunner_run_5b6c4085("Run()<br/><small>internal/admin/service.go</small>")
+        admin_service_inspectstatus_17915c94("InspectStatus()<br/><small>internal/admin/service.go</small>")
+        admin_service_setup_1835dfda("Setup()<br/><small>internal/admin/service.go</small>")
+        admin_service_createclient_9d617a2a("CreateClient()<br/><small>internal/admin/service.go</small>")
+        admin_service_deleteclient_4b4aff17("DeleteClient()<br/><small>internal/admin/service.go</small>")
+        admin_service_listclients_bfd295dd("ListClients()<br/><small>internal/admin/service.go</small>")
+        admin_service_openstorage_b58f8d59("openStorage()<br/><small>internal/admin/service.go</small>")
+        admin_service_readconfig_6cde4c24("ReadConfig()<br/><small>internal/admin/service.go</small>")
+    end
     subgraph extract_pipeline_cmd_minion_main_go_71759637["cmd/minion/main.go"]
         cmd_minion_main_main_63104f8e("main()<br/><small>cmd/minion/main.go</small>")
         cmd_minion_main_handleclientcommands_478ab345("handleClientCommands()<br/><small>cmd/minion/main.go</small>")
         cmd_minion_main_setup_74c9e499("setup()<br/><small>cmd/minion/main.go</small>")
     end
-    subgraph extract_pipeline_internal_server_server_go_bb668acb["internal/server/server.go"]
-        internal_server_server_go_server_server_a2463d5c("Server<br/><small>internal/server/server.go</small>")
-        server_server_handledisk_f0babb87("handleDisk()<br/><small>internal/server/server.go</small>")
-        server_server_handlefail2ban_8d88d431("handleFail2Ban()<br/><small>internal/server/server.go</small>")
+    subgraph extract_pipeline_internal_ui_ui_go_72dd8876["internal/ui/ui.go"]
+        ui_model_234bf73d("Model<br/><small>internal/ui/ui.go</small>")
+        ui_model_update_f0fe7ba7("Update()<br/><small>internal/ui/ui.go</small>")
+        ui_model_view_f7f3053f("View()<br/><small>internal/ui/ui.go</small>")
     end
-    subgraph extract_pipeline_internal_collectors_iptables_go_b8fb9ca6["internal/collectors/iptables.go"]
-        internal_collectors_iptables_getiptablesrules_33618f76("GetIPTablesRules()<br/><small>internal/collectors/iptables.go</small>")
-        internal_collectors_iptables_parseiptablesrules_3c2fa7dd("ParseIPTablesRules()<br/><small>internal/collectors/iptables.go</small>")
-    end
-    subgraph extract_pipeline_internal_collectors_journal_go_969f74c1["internal/collectors/journal.go"]
-        internal_collectors_journal_getjournallogs_c86292e7("GetJournalLogs()<br/><small>internal/collectors/journal.go</small>")
-        internal_collectors_journal_parsejournallogs_93503085("ParseJournalLogs()<br/><small>internal/collectors/journal.go</small>")
-    end
-    subgraph extract_pipeline_internal_collectors_logins_go_64928412["internal/collectors/logins.go"]
-        internal_collectors_logins_getlogins_1cc8cc50("GetLogins()<br/><small>internal/collectors/logins.go</small>")
-        internal_collectors_logins_findisotimestampindex_ac18e032("findISOTimestampIndex()<br/><small>internal/collectors/logins.go</small>")
-    end
-    subgraph extract_pipeline_internal_collectors_sudo_go_296d9ee6["internal/collectors/sudo.go"]
-        internal_collectors_sudo_getsudoevents_c4183891("GetSudoEvents()<br/><small>internal/collectors/sudo.go</small>")
-        internal_collectors_sudo_parsesudoevents_ae72ea73("ParseSudoEvents()<br/><small>internal/collectors/sudo.go</small>")
-    end
-    subgraph extract_pipeline_internal_collectors_users_go_8986bba2["internal/collectors/users.go"]
-        internal_collectors_users_getusers_604ce14e("GetUsers()<br/><small>internal/collectors/users.go</small>")
-        internal_collectors_users_ishumanuser_8481197d("isHumanUser()<br/><small>internal/collectors/users.go</small>")
-    end
-    server_statusrecorder_5e600c6b("statusRecorder<br/><small>internal/server/middleware.go</small>")
+    internal_server_server_go_server_server_a2463d5c("Server<br/><small>internal/server/server.go</small>")
     storage_storage_1cce48c6("Storage<br/><small>internal/storage/storage.go</small>")
     cmd_minion_main_main_63104f8e -->|calls| cmd_minion_main_handleclientcommands_478ab345
     cmd_minion_main_main_63104f8e -->|calls| cmd_minion_main_setup_74c9e499
-    internal_collectors_iptables_getiptablesrules_33618f76 -->|calls| internal_collectors_iptables_parseiptablesrules_3c2fa7dd
-    internal_collectors_journal_getjournallogs_c86292e7 -->|calls| internal_collectors_journal_parsejournallogs_93503085
-    internal_collectors_logins_getlogins_1cc8cc50 -->|calls| internal_collectors_logins_findisotimestampindex_ac18e032
-    internal_collectors_sudo_getsudoevents_c4183891 -->|calls| internal_collectors_sudo_parsesudoevents_ae72ea73
-    internal_collectors_users_getusers_604ce14e -->|calls| internal_collectors_users_ishumanuser_8481197d
-    internal_server_server_go_server_server_a2463d5c -->|method| server_server_handledisk_f0babb87
-    internal_server_server_go_server_server_a2463d5c -->|method| server_server_handlefail2ban_8d88d431
-    %% Omitted for readability: 102 nodes, 0 edges
+    admin_execrunner_0a225cc3 -->|method| admin_execrunner_run_5b6c4085
+    admin_execrunner_run_5b6c4085 -->|calls| admin_service_inspectstatus_17915c94
+    admin_execrunner_run_5b6c4085 -->|calls| admin_service_setup_1835dfda
+    admin_service_2a1e7fc9 -->|method| admin_service_createclient_9d617a2a
+    admin_service_2a1e7fc9 -->|method| admin_service_deleteclient_4b4aff17
+    admin_service_2a1e7fc9 -->|method| admin_service_inspectstatus_17915c94
+    admin_service_2a1e7fc9 -->|method| admin_service_listclients_bfd295dd
+    admin_service_2a1e7fc9 -->|method| admin_service_openstorage_b58f8d59
+    admin_service_2a1e7fc9 -->|method| admin_service_readconfig_6cde4c24
+    admin_service_2a1e7fc9 -->|method| admin_service_setup_1835dfda
+    admin_service_readconfig_6cde4c24 -->|calls| admin_service_inspectstatus_17915c94
+    admin_service_listclients_bfd295dd -->|calls| admin_service_openstorage_b58f8d59
+    admin_service_createclient_9d617a2a -->|calls| admin_service_openstorage_b58f8d59
+    admin_service_deleteclient_4b4aff17 -->|calls| admin_service_openstorage_b58f8d59
+    ui_model_234bf73d -->|method| ui_model_view_f7f3053f
+    %% Omitted for readability: 201 nodes, 0 edges
+    class admin_service_2a1e7fc9 klass;
+    class admin_execrunner_0a225cc3 function;
+    class admin_execrunner_run_5b6c4085 function;
+    class admin_service_inspectstatus_17915c94 function;
+    class admin_service_setup_1835dfda function;
+    class admin_service_createclient_9d617a2a entry;
+    class admin_service_deleteclient_4b4aff17 entry;
+    class admin_service_listclients_bfd295dd entry;
+    class admin_service_openstorage_b58f8d59 function;
+    class admin_service_readconfig_6cde4c24 function;
     class cmd_minion_main_main_63104f8e function;
     class cmd_minion_main_handleclientcommands_478ab345 entry;
     class cmd_minion_main_setup_74c9e499 function;
+    class ui_model_234bf73d klass;
+    class ui_model_update_f0fe7ba7 function;
+    class ui_model_view_f7f3053f function;
     class internal_server_server_go_server_server_a2463d5c klass;
-    class server_server_handledisk_f0babb87 function;
-    class server_server_handlefail2ban_8d88d431 function;
-    class internal_collectors_iptables_getiptablesrules_33618f76 function;
-    class internal_collectors_iptables_parseiptablesrules_3c2fa7dd function;
-    class internal_collectors_journal_getjournallogs_c86292e7 function;
-    class internal_collectors_journal_parsejournallogs_93503085 function;
-    class internal_collectors_logins_getlogins_1cc8cc50 function;
-    class internal_collectors_logins_findisotimestampindex_ac18e032 function;
-    class internal_collectors_sudo_getsudoevents_c4183891 function;
-    class internal_collectors_sudo_parsesudoevents_ae72ea73 function;
-    class internal_collectors_users_getusers_604ce14e function;
-    class internal_collectors_users_ishumanuser_8481197d function;
-    class server_statusrecorder_5e600c6b function;
     class storage_storage_1cce48c6 klass;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
@@ -221,243 +253,243 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>main.go</code><br><small style="color:var(--muted)">cmd/check/main.go</small></td>
+  <td><code>ui.go</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>main.go node in cmd/check/main.go.</td>
+  <td>ui.go node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>2</td>
-  <td><code>main()</code><br><small style="color:var(--muted)">cmd/check/main.go</small></td>
+  <td><code>screen</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td>main() node in cmd/check/main.go.</td>
+  <td>No direct outbound edge</td>
+  <td>screen node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>3</td>
-  <td><code>main.go</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td><span class="tag tag-class">Module</span></td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>main.go node in cmd/minion/main.go.</td>
+  <td><code>enterClientCreate()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterConfig()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+17 more</td>
+  <td>Model node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>4</td>
-  <td><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Service</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small><br><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td>main() node in cmd/minion/main.go.</td>
+  <td>No direct outbound edge</td>
+  <td>Service node in project.</td>
 </tr>
 <tr>
   <td>5</td>
-  <td><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td><code>GenerateAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small></td>
-  <td>setup() node in cmd/minion/main.go.</td>
+  <td><code>Client</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Client node in project.</td>
 </tr>
 <tr>
   <td>6</td>
-  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td><span class="tag tag-cmd">Entry</span></td>
-  <td><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
-  <td><code>GenerateAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small></td>
-  <td>handleClientCommands() node in cmd/minion/main.go.</td>
+  <td><code>Run()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>NewService()</code><br><small style="color:var(--muted)">internal/admin/service.go</small></td>
+  <td><code>ensureInteractive()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>NewModel()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>Run() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>7</td>
-  <td><code>main.go</code><br><small style="color:var(--muted)">cmd/verify/main.go</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>main.go node in cmd/verify/main.go.</td>
+  <td><code>NewModel()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Run()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterConfig()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterSetup()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+5 more</td>
+  <td>NewModel() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>8</td>
-  <td><code>main()</code><br><small style="color:var(--muted)">cmd/verify/main.go</small></td>
+  <td><code>ensureInteractive()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td>main() node in cmd/verify/main.go.</td>
+  <td><code>Run()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>TestEnsureInteractiveRejectsPipe()</code><br><small style="color:var(--muted)">internal/ui/ui_test.go</small></td>
+  <td>ensureInteractive() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>9</td>
-  <td><code>Load()</code><br><small style="color:var(--muted)">internal/config/config.go</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><code>File</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Load() node in internal/config/config.go.</td>
+  <td>File node in project.</td>
 </tr>
 <tr>
   <td>10</td>
-  <td><code>security.go</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
+  <td><code>.Init()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td>No direct outbound edge</td>
-  <td>security.go node in internal/security/security.go.</td>
+  <td>.Init() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>11</td>
-  <td><code>GenerateAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td><span class="tag tag-endpoint">API</span></td>
-  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>setup()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small></td>
+  <td><code>Cmd</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>GenerateAPIKey() node in internal/security/security.go.</td>
+  <td>Cmd node in project.</td>
 </tr>
 <tr>
   <td>12</td>
-  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td><span class="tag tag-endpoint">API</span></td>
-  <td><code>handleClientCommands()</code><br><small style="color:var(--muted)">cmd/minion/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/verify/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/check/main.go</small><br>+1 more</td>
-  <td><code>TestHashAndVerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
-  <td>Caches analysis results or computes cache keys.</td>
+  <td><code>.Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>updateClientActionConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>updateClientCreateConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>updateClientCreateForm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+8 more</td>
+  <td>.Update() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>13</td>
-  <td><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td><span class="tag tag-endpoint">API</span></td>
-  <td><code>main()</code><br><small style="color:var(--muted)">cmd/verify/main.go</small><br><code>main()</code><br><small style="color:var(--muted)">cmd/check/main.go</small></td>
-  <td><code>auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>TestHashAndVerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
-  <td>VerifyAPIKey() node in internal/security/security.go.</td>
+  <td><code>Msg</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Msg node in project.</td>
 </tr>
 <tr>
   <td>14</td>
-  <td><code>IPAllowed()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><code>.View()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>TestIPAllowed()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
-  <td>IPAllowed() node in internal/security/security.go.</td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>viewClientActionConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>viewClientCreateConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>viewClientCreateForm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+8 more</td>
+  <td>.View() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>15</td>
-  <td><code>security_test.go</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Verifies imports, entry points, or version behavior.</td>
+  <td><code>.updateMenu()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterConfig()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterSetup()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+1 more</td>
+  <td>.updateMenu() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>16</td>
-  <td><code>TestHashAndVerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>HashAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>VerifyAPIKey()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
+  <td><code>KeyMsg</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Caches analysis results or computes cache keys.</td>
+  <td>KeyMsg node in project.</td>
 </tr>
 <tr>
   <td>17</td>
-  <td><code>T</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>T node in project.</td>
-</tr>
-<tr>
-  <td>18</td>
-  <td><code>TestIPAllowed()</code><br><small style="color:var(--muted)">internal/security/security_test.go</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>IPAllowed()</code><br><small style="color:var(--muted)">internal/security/security.go</small></td>
-  <td>No direct outbound edge</td>
+  <td><code>.updateStatus()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>enterStatus()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>19</td>
-  <td><code>.auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td>18</td>
+  <td><code>.updateSetupForm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>IPAllowed()</code><br><small style="color:var(--muted)">internal/security/security.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>setClientNameOnWriter()</code><br><small style="color:var(--muted)">internal/server/middleware.go</small><br>+3 more</td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.auth() node in internal/server/server.go.</td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>focusInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateSetupForm() node in internal/ui/ui.go.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>.updateSetupConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateSetupConfirm() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>20</td>
-  <td><code>HandlerFunc</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>HandlerFunc node in project.</td>
+  <td><code>.updateConfigForm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>focusInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>Reads, resolves, or persists project configuration.</td>
 </tr>
 <tr>
   <td>21</td>
-  <td><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>auth()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>handleDisk()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>handleFail2Ban()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br>+15 more</td>
-  <td>Server node in internal/server/server.go.</td>
+  <td><code>.updateConfigConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>Reads, resolves, or persists project configuration.</td>
 </tr>
 <tr>
   <td>22</td>
-  <td><code>.handleHealth()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleHealth() node in internal/server/server.go.</td>
+  <td><code>.updateClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>enterClientCreate()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateClients() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>23</td>
-  <td><code>ResponseWriter</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>ResponseWriter node in project.</td>
+  <td><code>.updateClientCreateForm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>focusInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateClientCreateForm() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>24</td>
-  <td><code>Request</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Request node in project.</td>
+  <td><code>.updateClientCreateConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateClientCreateConfirm() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>25</td>
-  <td><code>.handleSystem()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>GetSystem()</code><br><small style="color:var(--muted)">internal/collectors/system.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleSystem() node in internal/server/server.go.</td>
+  <td><code>.updateClientActionConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateClientActionConfirm() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>26</td>
-  <td><code>.handleUsers()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>.updateMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>GetUsers()</code><br><small style="color:var(--muted)">internal/collectors/users.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleUsers() node in internal/server/server.go.</td>
+  <td><code>Update()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.updateMessage() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>27</td>
-  <td><code>.handleServices()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>.enterStatus()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>GetServices()</code><br><small style="color:var(--muted)">internal/collectors/services.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleServices() node in internal/server/server.go.</td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>NewModel()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>updateMenu()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+1 more</td>
+  <td><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.enterStatus() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>28</td>
-  <td><code>.handleFail2Ban()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>.enterSetup()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>GetFail2BanEvents()</code><br><small style="color:var(--muted)">internal/collectors/fail2ban.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleFail2Ban() node in internal/server/server.go.</td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>NewModel()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>updateMenu()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>focusInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>newInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.enterSetup() node in internal/ui/ui.go.</td>
 </tr>
 <tr>
   <td>29</td>
-  <td><code>.handleFail2BanUnban()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
+  <td><code>.enterConfig()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleFail2BanUnban() node in internal/server/server.go.</td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>NewModel()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>updateMenu()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><code>focusInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>newInput()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>Reads, resolves, or persists project configuration.</td>
 </tr>
 <tr>
   <td>30</td>
-  <td><code>.handleIPBlock()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>IsIPBlocked()</code><br><small style="color:var(--muted)">internal/collectors/ipblock.go</small><br><code>Server</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td><code>writeError()</code><br><small style="color:var(--muted)">internal/server/server.go</small><br><code>writeJSON()</code><br><small style="color:var(--muted)">internal/server/server.go</small></td>
-  <td>.handleIPBlock() node in internal/server/server.go.</td>
+  <td><code>.enterClients()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>Model</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>NewModel()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br><code>updateClientActionConfirm()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small><br>+3 more</td>
+  <td><code>showMessage()</code><br><small style="color:var(--muted)">internal/ui/ui.go</small></td>
+  <td>.enterClients() node in internal/ui/ui.go.</td>
 </tr>
 </table>
 
@@ -466,19 +498,19 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>internal/server/server.go</code></td><td>22 nodes</td></tr>
+      <tr><td><code>internal/ui/ui.go</code></td><td>41 nodes</td></tr>
+<tr><td><code>internal/admin/service.go</code></td><td>23 nodes</td></tr>
+<tr><td><code>internal/server/server.go</code></td><td>23 nodes</td></tr>
 <tr><td><code>internal/server/middleware.go</code></td><td>11 nodes</td></tr>
 <tr><td><code>internal/storage/storage.go</code></td><td>10 nodes</td></tr>
+<tr><td><code>internal/admin/service_test.go</code></td><td>8 nodes</td></tr>
+<tr><td><code>internal/config/config.go</code></td><td>8 nodes</td></tr>
 <tr><td><code>internal/security/security.go</code></td><td>5 nodes</td></tr>
-<tr><td><code>cmd/minion/main.go</code></td><td>4 nodes</td></tr>
-<tr><td><code>internal/collectors/iptables.go</code></td><td>4 nodes</td></tr>
-<tr><td><code>internal/collectors/journal.go</code></td><td>4 nodes</td></tr>
-<tr><td><code>internal/collectors/logins.go</code></td><td>4 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: references x65, contains x59, calls x40, method x26. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: references x141, calls x116, contains x95, method x59. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -552,12 +584,24 @@ flowchart LR
 
 <!-- ====== 4. CLI & Skill Installers ====== -->
 <h2 id="cli-skills">4. CLI &amp; Skill Installers</h2>
-<p>CLI &amp; Skill Installers groups implementation around installsh, install, minionsh, script, mostly in install.sh, install_minion.sh. This section covers 8 nodes and 8 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>CLI &amp; Skill Installers groups implementation around claudemd, minion, 2026, improvementsmd, mostly in CLAUDE.md, superpowers/plans/2026-06-13-minion-improvements.md, install.sh. This section covers 27 nodes and 25 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: CLI &amp; Skill Installers (8 nodes, 8 edges)
+    %% Section: CLI &amp; Skill Installers (27 nodes, 25 edges)
+    subgraph cli_skills_CLAUDE_md_27387765["CLAUDE.md"]
+        claude_api_surface_751f1348("API Surface<br/><small>CLAUDE.md</small>")
+        claude_f1dda22f("CLAUDE.md")
+        claude_claude_md_dbf0debe("CLAUDE.md")
+        claude_client_management_a7bfe869("Client Management<br/><small>CLAUDE.md</small>")
+        claude_common_commands_91fc79e7("Common Commands<br/><small>CLAUDE.md</small>")
+        claude_configuration_runtime_files_81888501("Configuration &amp; Runtime Files<br/><small>CLAUDE.md</small>")
+        claude_high_level_architecture_a79a460b("High-Level Architecture<br/><small>CLAUDE.md</small>")
+        claude_maintenance_notes_d3175490("Maintenance Notes<br/><small>CLAUDE.md</small>")
+        claude_packaging_installation_8322b84f("Packaging / Installation<br/><small>CLAUDE.md</small>")
+        claude_reference_documents_f4b466f0("Reference Documents<br/><small>CLAUDE.md</small>")
+    end
     subgraph cli_skills_install_sh_d5f728cd["install.sh"]
         install_sh_entry_0b61c65f("install.sh script<br/><small>install.sh</small>")
         install_log_f3adc366("log()<br/><small>install.sh</small>")
@@ -572,6 +616,17 @@ flowchart LR
     end
     install_sh_entry_0b61c65f -->|calls| install_log_f3adc366
     install_minion_sh_entry_759ad785 -->|calls| install_minion_log_350de6bc
+    %% Omitted for readability: 9 nodes, 0 edges
+    class claude_api_surface_751f1348 concept;
+    class claude_f1dda22f concept;
+    class claude_claude_md_dbf0debe concept;
+    class claude_client_management_a7bfe869 concept;
+    class claude_common_commands_91fc79e7 concept;
+    class claude_configuration_runtime_files_81888501 concept;
+    class claude_high_level_architecture_a79a460b concept;
+    class claude_maintenance_notes_d3175490 concept;
+    class claude_packaging_installation_8322b84f concept;
+    class claude_reference_documents_f4b466f0 concept;
     class install_sh_entry_0b61c65f function;
     class install_log_f3adc366 function;
     class install_go111module_db3a28ba klass;
@@ -603,6 +658,158 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
+  <td><code>CLAUDE.md</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing CLAUDE.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>CLAUDE.md</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing CLAUDE.md.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Common Commands</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Common Commands.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>High-Level Architecture</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing High-Level Architecture.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>API Surface</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing API Surface.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Configuration &amp; Runtime Files</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Configuration &amp; Runtime Files.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Client Management</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Client Management.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Packaging / Installation</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Packaging / Installation.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Maintenance Notes</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Maintenance Notes.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Reference Documents</code><br><small style="color:var(--muted)">CLAUDE.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Reference Documents.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>2026-06-13-minion-improvements.md</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 2026-06-13-minion-improvements.md.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Minion Agent Improvements Implementation Plan</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Minion Agent Improvements Implementation Plan.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Task 1: Garantir diretório do SQLite exista</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task 1: Garantir diretório do SQLite exista.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Task 2: Trocar sal estático por sal aleatório nas chaves API</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task 2: Trocar sal estático por sal aleatório nas chaves API.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Task 3: Validar entrada no endpoint Fail2Ban unban</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task 3: Validar entrada no endpoint Fail2Ban unban.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Task 4: Adicionar middleware de auditoria</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task 4: Adicionar middleware de auditoria.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Task 5: Linting &amp; CI integration</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task 5: Linting &amp; CI integration.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Task 6: Systemd unit file</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task 6: Systemd unit file.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Self‑Review Checklist</code><br><small style="color:var(--muted)">superpowers/plans/2026-06-13-minion-improvements.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Self‑Review Checklist.</td>
+</tr>
+<tr>
+  <td>20</td>
   <td><code>install.sh</code><br><small style="color:var(--muted)">install.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -610,7 +817,7 @@ flowchart LR
   <td>install.sh node in install.sh.</td>
 </tr>
 <tr>
-  <td>2</td>
+  <td>21</td>
   <td><code>install.sh script</code><br><small style="color:var(--muted)">install.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -618,7 +825,7 @@ flowchart LR
   <td>install.sh script node in install.sh.</td>
 </tr>
 <tr>
-  <td>3</td>
+  <td>22</td>
   <td><code>log()</code><br><small style="color:var(--muted)">install.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>install.sh script</code><br><small style="color:var(--muted)">install.sh</small></td>
@@ -626,7 +833,7 @@ flowchart LR
   <td>log() node in install.sh.</td>
 </tr>
 <tr>
-  <td>4</td>
+  <td>23</td>
   <td><code>GO111MODULE</code><br><small style="color:var(--muted)">install.sh</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -634,7 +841,7 @@ flowchart LR
   <td>GO111MODULE node in install.sh.</td>
 </tr>
 <tr>
-  <td>5</td>
+  <td>24</td>
   <td><code>install_minion.sh</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -642,7 +849,7 @@ flowchart LR
   <td>install_minion.sh node in install_minion.sh.</td>
 </tr>
 <tr>
-  <td>6</td>
+  <td>25</td>
   <td><code>install_minion.sh script</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -650,7 +857,7 @@ flowchart LR
   <td>install_minion.sh script node in install_minion.sh.</td>
 </tr>
 <tr>
-  <td>7</td>
+  <td>26</td>
   <td><code>log()</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>install_minion.sh script</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
@@ -658,7 +865,7 @@ flowchart LR
   <td>log() node in install_minion.sh.</td>
 </tr>
 <tr>
-  <td>8</td>
+  <td>27</td>
   <td><code>GO111MODULE</code><br><small style="color:var(--muted)">install_minion.sh</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -672,30 +879,1909 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>install.sh</code></td><td>4 nodes</td></tr>
+      <tr><td><code>CLAUDE.md</code></td><td>10 nodes</td></tr>
+<tr><td><code>superpowers/plans/2026-06-13-minion-improvements.md</code></td><td>9 nodes</td></tr>
+<tr><td><code>install.sh</code></td><td>4 nodes</td></tr>
 <tr><td><code>install_minion.sh</code></td><td>4 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: defines x4, contains x2, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x19, defines x4, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 5. graphify-nvidia.sh ====== -->
-<h2 id="graphify-nvidia-sh">5. graphify-nvidia.sh</h2>
-<p>graphify-nvidia.sh groups implementation around graphify, nvidiash, scripts, script, mostly in scripts/graphify-nvidia.sh. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 5. Serving API ====== -->
+<h2 id="serve-api">5. Serving API</h2>
+<p>Serving API groups implementation around specmd, cliente, engine, api, mostly in SPEC.md. This section covers 57 nodes and 56 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: graphify-nvidia.sh (2 nodes, 1 edges)
-    scripts_graphify_nvidia_e80daef7("graphify-nvidia.sh")
-    scripts_graphify_nvidia_sh_entry_7be9b0f4("graphify-nvidia.sh script<br/><small>scripts/graphify-nvidia.sh</small>")
+    %% Section: Serving API (57 nodes, 56 edges)
+    spec_07877272("SPEC.md")
+    spec_api_a426ca84("API<br/><small>SPEC.md</small>")
+    spec_coletores_7c6424f0("Coletores<br/><small>SPEC.md</small>")
+    spec_tecnologias_3906e83f("Tecnologias<br/><small>SPEC.md</small>")
+    spec_componentes_12ac9fb2("Componentes<br/><small>SPEC.md</small>")
+    spec_gerenciamento_de_clientes_b9cd01d5("Gerenciamento de Clientes<br/><small>SPEC.md</small>")
+    spec_modelo_de_seguran_a_9749374f("Modelo de Segurança<br/><small>SPEC.md</small>")
+    spec_requisitos_n_o_funcionais_9650f54d("Requisitos Não Funcionais<br/><small>SPEC.md</small>")
+    spec_minion_especifica_o_funcional_v1_0_3c8cff50("Minion - Especificação Funcional v1.0<br/><small>SPEC.md</small>")
+    spec_api_key_781ead5b("API Key<br/><small>SPEC.md</small>")
+    spec_api_server_c77e7fc9("API Server<br/><small>SPEC.md</small>")
+    spec_arquitetura_de37e9d8("Arquitetura<br/><small>SPEC.md</small>")
+    spec_audit_logging_a25f8ef9("Audit Logging<br/><small>SPEC.md</small>")
+    spec_auditoria_69855445("Auditoria<br/><small>SPEC.md</small>")
+    spec_a_es_administrativas_futuras_683fd8ff("Ações Administrativas Futuras<br/><small>SPEC.md</small>")
+    spec_banco_local_dfde155a("Banco Local<br/><small>SPEC.md</small>")
+    spec_cliente_4125210d("Cliente<br/><small>SPEC.md</small>")
+    spec_collector_engine_1471053f("Collector Engine<br/><small>SPEC.md</small>")
+    spec_07877272 -->|contains| spec_api_a426ca84
+    spec_07877272 -->|contains| spec_arquitetura_de37e9d8
+    spec_07877272 -->|contains| spec_auditoria_69855445
+    spec_07877272 -->|contains| spec_a_es_administrativas_futuras_683fd8ff
+    spec_07877272 -->|contains| spec_coletores_7c6424f0
+    spec_07877272 -->|contains| spec_componentes_12ac9fb2
+    spec_07877272 -->|contains| spec_gerenciamento_de_clientes_b9cd01d5
+    spec_07877272 -->|contains| spec_minion_especifica_o_funcional_v1_0_3c8cff50
+    spec_07877272 -->|contains| spec_modelo_de_seguran_a_9749374f
+    spec_07877272 -->|contains| spec_requisitos_n_o_funcionais_9650f54d
+    spec_07877272 -->|contains| spec_tecnologias_3906e83f
+    spec_tecnologias_3906e83f -->|contains| spec_banco_local_dfde155a
+    spec_componentes_12ac9fb2 -->|contains| spec_api_server_c77e7fc9
+    spec_componentes_12ac9fb2 -->|contains| spec_audit_logging_a25f8ef9
+    spec_componentes_12ac9fb2 -->|contains| spec_collector_engine_1471053f
+    spec_modelo_de_seguran_a_9749374f -->|contains| spec_api_key_781ead5b
+    spec_modelo_de_seguran_a_9749374f -->|contains| spec_cliente_4125210d
+    %% Omitted for readability: 39 nodes, 0 edges
+    class spec_07877272 concept;
+    class spec_api_a426ca84 concept;
+    class spec_coletores_7c6424f0 concept;
+    class spec_tecnologias_3906e83f concept;
+    class spec_componentes_12ac9fb2 concept;
+    class spec_gerenciamento_de_clientes_b9cd01d5 concept;
+    class spec_modelo_de_seguran_a_9749374f concept;
+    class spec_requisitos_n_o_funcionais_9650f54d concept;
+    class spec_minion_especifica_o_funcional_v1_0_3c8cff50 concept;
+    class spec_api_key_781ead5b concept;
+    class spec_api_server_c77e7fc9 concept;
+    class spec_arquitetura_de37e9d8 concept;
+    class spec_audit_logging_a25f8ef9 concept;
+    class spec_auditoria_69855445 concept;
+    class spec_a_es_administrativas_futuras_683fd8ff concept;
+    class spec_banco_local_dfde155a concept;
+    class spec_cliente_4125210d concept;
+    class spec_collector_engine_1471053f concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>SPEC.md</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing SPEC.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Minion - Especificação Funcional v1.0</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Minion - Especificação Funcional v1.0.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Visão Geral</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Visão Geral.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Objetivos</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Objetivos.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Tecnologias</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Tecnologias.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Linguagem</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Linguagem.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Distribuição</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Distribuição.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Execução</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Execução.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Banco Local</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Banco Local.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Configuração</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Configuração.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Porta padrão</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Porta padrão.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Arquitetura</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Arquitetura.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Componentes</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Componentes.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Collector Engine</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Collector Engine.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>API Server</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing API Server.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Event Engine</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Event Engine.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Storage Engine</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Storage Engine.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Audit Logging</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Audit Logging.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Modelo de Segurança</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Modelo de Segurança.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Conceito</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Conceito.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>Cliente</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Cliente.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Fluxo de Autenticação</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Fluxo de Autenticação.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>API Key</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing API Key.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Gerenciamento de Clientes</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Gerenciamento de Clientes.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Criar Cliente</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Criar Cliente.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Listar Clientes</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Listar Clientes.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Desabilitar Cliente</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Desabilitar Cliente.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Habilitar Cliente</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Habilitar Cliente.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Remover Cliente</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Remover Cliente.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Modelo de Permissões</code><br><small style="color:var(--muted)">SPEC.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Modelo de Permissões.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>SPEC.md</code></td><td>57 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x56. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. Config ====== -->
+<h2 id="config">6. Config</h2>
+<p>Config groups implementation around adrmd, adr, contexto, decisão, mostly in ADR.md. This section covers 44 nodes and 43 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Config (44 nodes, 43 edges)
+    adr_d121dbfb("ADR.md")
+    adr_adr_001_arquitetura_base_do_minion_26b4f4dc("ADR-001 — Arquitetura Base do Minion<br/><small>ADR.md</small>")
+    adr_adr_002_linguagem_de_desenvolvimento_bc695e51("ADR-002 — Linguagem de Desenvolvimento<br/><small>ADR.md</small>")
+    adr_adr_003_distribui_o_em_bin_rio_nico_8fbc7044("ADR-003 — Distribuição em Binário Único<br/><small>ADR.md</small>")
+    adr_adr_004_banco_de_dados_local_f91f40be("ADR-004 — Banco de Dados Local<br/><small>ADR.md</small>")
+    adr_adr_005_modelo_de_comunica_o_b492bdfb("ADR-005 — Modelo de Comunicação<br/><small>ADR.md</small>")
+    adr_adr_006_modelo_de_seguran_a_08060dcf("ADR-006 — Modelo de Segurança<br/><small>ADR.md</small>")
+    adr_adr_007_gera_o_de_api_keys_e3ef36bc("ADR-007 — Geração de API Keys<br/><small>ADR.md</small>")
+    adr_adr_008_modelo_de_permiss_es_4a5f4e3e("ADR-008 — Modelo de Permissões<br/><small>ADR.md</small>")
+    adr_adr_009_aus_ncia_de_intelig_ncia_artificial_a36c722a("ADR-009 — Ausência de Inteligência Arti...<br/><small>ADR.md</small>")
+    adr_adr_010_a_es_administrativas_controladas_db3a3cf7("ADR-010 — Ações Administrativas Control...<br/><small>ADR.md</small>")
+    adr_consequ_ncias_527_7e16e421("Consequências<br/><small>ADR.md</small>")
+    adr_contexto_513eb8b0("Contexto<br/><small>ADR.md</small>")
+    adr_contexto_82_993e23f9("Contexto<br/><small>ADR.md</small>")
+    adr_contexto_134_5923823e("Contexto<br/><small>ADR.md</small>")
+    adr_contexto_165_fcb1851f("Contexto<br/><small>ADR.md</small>")
+    adr_contexto_214_ddae689f("Contexto<br/><small>ADR.md</small>")
+    adr_contexto_253_7005b541("Contexto<br/><small>ADR.md</small>")
+    adr_d121dbfb -->|contains| adr_adr_001_arquitetura_base_do_minion_26b4f4dc
+    adr_d121dbfb -->|contains| adr_adr_002_linguagem_de_desenvolvimento_bc695e51
+    adr_d121dbfb -->|contains| adr_adr_003_distribui_o_em_bin_rio_nico_8fbc7044
+    adr_d121dbfb -->|contains| adr_adr_004_banco_de_dados_local_f91f40be
+    adr_d121dbfb -->|contains| adr_adr_005_modelo_de_comunica_o_b492bdfb
+    adr_d121dbfb -->|contains| adr_adr_006_modelo_de_seguran_a_08060dcf
+    adr_d121dbfb -->|contains| adr_adr_007_gera_o_de_api_keys_e3ef36bc
+    adr_d121dbfb -->|contains| adr_adr_008_modelo_de_permiss_es_4a5f4e3e
+    adr_d121dbfb -->|contains| adr_adr_009_aus_ncia_de_intelig_ncia_artificial_a36c722a
+    adr_d121dbfb -->|contains| adr_adr_010_a_es_administrativas_controladas_db3a3cf7
+    adr_d121dbfb -->|contains| adr_consequ_ncias_527_7e16e421
+    adr_d121dbfb -->|contains| adr_contexto_513eb8b0
+    adr_d121dbfb -->|contains| adr_contexto_134_5923823e
+    adr_d121dbfb -->|contains| adr_contexto_165_fcb1851f
+    adr_d121dbfb -->|contains| adr_contexto_214_ddae689f
+    adr_d121dbfb -->|contains| adr_contexto_253_7005b541
+    adr_d121dbfb -->|contains| adr_contexto_82_993e23f9
+    %% Omitted for readability: 26 nodes, 0 edges
+    class adr_d121dbfb concept;
+    class adr_adr_001_arquitetura_base_do_minion_26b4f4dc concept;
+    class adr_adr_002_linguagem_de_desenvolvimento_bc695e51 concept;
+    class adr_adr_003_distribui_o_em_bin_rio_nico_8fbc7044 concept;
+    class adr_adr_004_banco_de_dados_local_f91f40be concept;
+    class adr_adr_005_modelo_de_comunica_o_b492bdfb concept;
+    class adr_adr_006_modelo_de_seguran_a_08060dcf concept;
+    class adr_adr_007_gera_o_de_api_keys_e3ef36bc concept;
+    class adr_adr_008_modelo_de_permiss_es_4a5f4e3e concept;
+    class adr_adr_009_aus_ncia_de_intelig_ncia_artificial_a36c722a concept;
+    class adr_adr_010_a_es_administrativas_controladas_db3a3cf7 concept;
+    class adr_consequ_ncias_527_7e16e421 concept;
+    class adr_contexto_513eb8b0 concept;
+    class adr_contexto_82_993e23f9 concept;
+    class adr_contexto_134_5923823e concept;
+    class adr_contexto_165_fcb1851f concept;
+    class adr_contexto_214_ddae689f concept;
+    class adr_contexto_253_7005b541 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>ADR.md</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ADR-001 — Arquitetura Base do Minion</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-001 — Arquitetura Base do Minion.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>ADR-002 — Linguagem de Desenvolvimento</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-002 — Linguagem de Desenvolvimento.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>ADR-003 — Distribuição em Binário Único</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-003 — Distribuição em Binário Único.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>ADR-004 — Banco de Dados Local</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-004 — Banco de Dados Local.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>ADR-005 — Modelo de Comunicação</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-005 — Modelo de Comunicação.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>ADR-006 — Modelo de Segurança</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-006 — Modelo de Segurança.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Fluxo</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Fluxo.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>ADR-007 — Geração de API Keys</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-007 — Geração de API Keys.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Regras</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Regras.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ADR.md</code></td><td>44 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x43. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. IsIPBlocked ====== -->
+<h2 id="isipblocked">7. IsIPBlocked</h2>
+<p>IsIPBlocked groups implementation around readmemd, minion, que, segurança, mostly in README.md. This section covers 24 nodes and 23 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: IsIPBlocked (24 nodes, 23 edges)
+    readme_minion_agent_a23221b7("Minion Agent<br/><small>README.md</small>")
+    readme_f78a71af("README.md")
+    readme_10_gerenciamento_de_clientes_5e9fbf09("10. Gerenciamento de clientes<br/><small>README.md</small>")
+    readme_11_autentica_o_83179f98("11. Autenticação<br/><small>README.md</small>")
+    readme_13_auditoria_023d8299("13. Auditoria<br/><small>README.md</small>")
+    readme_14_build_local_f2491d5b("14. Build local<br/><small>README.md</small>")
+    readme_1_vis_o_geral_b78dfba0("1. Visão geral<br/><small>README.md</small>")
+    readme_15_como_gerar_um_deb_local_d4d0d075("15. Como gerar um .deb local<br/><small>README.md</small>")
+    readme_16_atualiza_o_manual_7d702cdf("16. Atualização manual<br/><small>README.md</small>")
+    readme_17_seguran_a_operacional_e431b236("17. Segurança operacional<br/><small>README.md</small>")
+    readme_18_troubleshooting_1614b41b("18. Troubleshooting<br/><small>README.md</small>")
+    readme_19_roadmap_4f7d5d6b("19. Roadmap<br/><small>README.md</small>")
+    readme_2_por_que_o_minion_existe_9119491a("2. Por que o Minion existe<br/><small>README.md</small>")
+    readme_20_documentos_relacionados_24314920("20. Documentos relacionados<br/><small>README.md</small>")
+    readme_21_filosofia_do_projeto_4e3fa6bd("21. Filosofia do projeto<br/><small>README.md</small>")
+    readme_3_princ_pio_de_seguran_a_27dd2570("3. Princípio de segurança<br/><small>README.md</small>")
+    readme_4_o_que_o_minion_faz_hoje_36afb5d1("4. O que o Minion faz hoje<br/><small>README.md</small>")
+    readme_5_o_que_o_minion_n_o_deve_fazer_8d53dad5("5. O que o Minion não deve fazer<br/><small>README.md</small>")
+    readme_f78a71af -->|contains| readme_minion_agent_a23221b7
+    readme_minion_agent_a23221b7 -->|contains| readme_10_gerenciamento_de_clientes_5e9fbf09
+    readme_minion_agent_a23221b7 -->|contains| readme_11_autentica_o_83179f98
+    readme_minion_agent_a23221b7 -->|contains| readme_13_auditoria_023d8299
+    readme_minion_agent_a23221b7 -->|contains| readme_14_build_local_f2491d5b
+    readme_minion_agent_a23221b7 -->|contains| readme_15_como_gerar_um_deb_local_d4d0d075
+    readme_minion_agent_a23221b7 -->|contains| readme_16_atualiza_o_manual_7d702cdf
+    readme_minion_agent_a23221b7 -->|contains| readme_17_seguran_a_operacional_e431b236
+    readme_minion_agent_a23221b7 -->|contains| readme_18_troubleshooting_1614b41b
+    readme_minion_agent_a23221b7 -->|contains| readme_19_roadmap_4f7d5d6b
+    readme_minion_agent_a23221b7 -->|contains| readme_1_vis_o_geral_b78dfba0
+    readme_minion_agent_a23221b7 -->|contains| readme_20_documentos_relacionados_24314920
+    readme_minion_agent_a23221b7 -->|contains| readme_21_filosofia_do_projeto_4e3fa6bd
+    readme_minion_agent_a23221b7 -->|contains| readme_2_por_que_o_minion_existe_9119491a
+    readme_minion_agent_a23221b7 -->|contains| readme_3_princ_pio_de_seguran_a_27dd2570
+    readme_minion_agent_a23221b7 -->|contains| readme_4_o_que_o_minion_faz_hoje_36afb5d1
+    readme_minion_agent_a23221b7 -->|contains| readme_5_o_que_o_minion_n_o_deve_fazer_8d53dad5
+    %% Omitted for readability: 6 nodes, 0 edges
+    class readme_minion_agent_a23221b7 concept;
+    class readme_f78a71af concept;
+    class readme_10_gerenciamento_de_clientes_5e9fbf09 concept;
+    class readme_11_autentica_o_83179f98 concept;
+    class readme_13_auditoria_023d8299 concept;
+    class readme_14_build_local_f2491d5b concept;
+    class readme_1_vis_o_geral_b78dfba0 concept;
+    class readme_15_como_gerar_um_deb_local_d4d0d075 concept;
+    class readme_16_atualiza_o_manual_7d702cdf concept;
+    class readme_17_seguran_a_operacional_e431b236 concept;
+    class readme_18_troubleshooting_1614b41b concept;
+    class readme_19_roadmap_4f7d5d6b concept;
+    class readme_2_por_que_o_minion_existe_9119491a concept;
+    class readme_20_documentos_relacionados_24314920 concept;
+    class readme_21_filosofia_do_projeto_4e3fa6bd concept;
+    class readme_3_princ_pio_de_seguran_a_27dd2570 concept;
+    class readme_4_o_que_o_minion_faz_hoje_36afb5d1 concept;
+    class readme_5_o_que_o_minion_n_o_deve_fazer_8d53dad5 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>README.md</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing README.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Minion Agent</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Minion Agent.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>1. Visão geral</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 1. Visão geral.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>2. Por que o Minion existe</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 2. Por que o Minion existe.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>3. Princípio de segurança</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 3. Princípio de segurança.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>4. O que o Minion faz hoje</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 4. O que o Minion faz hoje.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>5. O que o Minion não deve fazer</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 5. O que o Minion não deve fazer.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>6. Arquitetura</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 6. Arquitetura.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>7. Requisitos</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 7. Requisitos.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>8. Instalação via pacote `.deb`</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 8. Instalação via pacote `.deb`.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>9. Configuração</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 9. Configuração.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Graphify via NVIDIA</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Graphify via NVIDIA.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>10. Gerenciamento de clientes</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 10. Gerenciamento de clientes.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>UI interativa</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing UI interativa.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>11. Autenticação</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 11. Autenticação.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>13. Auditoria</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 13. Auditoria.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>14. Build local</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 14. Build local.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>15. Como gerar um `.deb` local</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 15. Como gerar um `.deb` local.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>16. Atualização manual</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 16. Atualização manual.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>17. Segurança operacional</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 17. Segurança operacional.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>18. Troubleshooting</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 18. Troubleshooting.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>19. Roadmap</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 19. Roadmap.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>20. Documentos relacionados</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 20. Documentos relacionados.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>21. Filosofia do projeto</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 21. Filosofia do projeto.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>README.md</code></td><td>24 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x23. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. 12. Endpoints ====== -->
+<h2 id="12-endpoints">8. 12. Endpoints</h2>
+<p>12. Endpoints groups implementation around readmemd, fail2ban, endpoints, health, mostly in README.md. This section covers 15 nodes and 14 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: 12. Endpoints (15 nodes, 14 edges)
+    readme_12_endpoints_98e27ed3("12. Endpoints<br/><small>README.md</small>")
+    readme_disco_91345b84("Disco<br/><small>README.md</small>")
+    readme_eventos_de_privil_gio_e96e876b("Eventos de privilégio<br/><small>README.md</small>")
+    readme_fail2ban_16067a96("Fail2Ban<br/><small>README.md</small>")
+    readme_fail2ban_unban_ed20a3a8("Fail2Ban Unban<br/><small>README.md</small>")
+    readme_health_eb3dfbe5("Health<br/><small>README.md</small>")
+    readme_ip_block_e175632c("IP Block<br/><small>README.md</small>")
+    readme_iptables_4a6bacba("IPTables<br/><small>README.md</small>")
+    readme_journal_cde16a3d("Journal<br/><small>README.md</small>")
+    readme_logins_00f02a00("Logins<br/><small>README.md</small>")
+    readme_mem_ria_4f82e6d2("Memória<br/><small>README.md</small>")
+    readme_servi_os_fc53aba4("Serviços<br/><small>README.md</small>")
+    readme_sistema_9b713087("Sistema<br/><small>README.md</small>")
+    readme_usu_rios_5039faf3("Usuários<br/><small>README.md</small>")
+    readme_wazuh_e2249f0b("Wazuh<br/><small>README.md</small>")
+    readme_12_endpoints_98e27ed3 -->|contains| readme_disco_91345b84
+    readme_12_endpoints_98e27ed3 -->|contains| readme_eventos_de_privil_gio_e96e876b
+    readme_12_endpoints_98e27ed3 -->|contains| readme_fail2ban_16067a96
+    readme_12_endpoints_98e27ed3 -->|contains| readme_fail2ban_unban_ed20a3a8
+    readme_12_endpoints_98e27ed3 -->|contains| readme_health_eb3dfbe5
+    readme_12_endpoints_98e27ed3 -->|contains| readme_ip_block_e175632c
+    readme_12_endpoints_98e27ed3 -->|contains| readme_iptables_4a6bacba
+    readme_12_endpoints_98e27ed3 -->|contains| readme_journal_cde16a3d
+    readme_12_endpoints_98e27ed3 -->|contains| readme_logins_00f02a00
+    readme_12_endpoints_98e27ed3 -->|contains| readme_mem_ria_4f82e6d2
+    readme_12_endpoints_98e27ed3 -->|contains| readme_servi_os_fc53aba4
+    readme_12_endpoints_98e27ed3 -->|contains| readme_sistema_9b713087
+    readme_12_endpoints_98e27ed3 -->|contains| readme_usu_rios_5039faf3
+    readme_12_endpoints_98e27ed3 -->|contains| readme_wazuh_e2249f0b
+    class readme_12_endpoints_98e27ed3 concept;
+    class readme_disco_91345b84 concept;
+    class readme_eventos_de_privil_gio_e96e876b concept;
+    class readme_fail2ban_16067a96 concept;
+    class readme_fail2ban_unban_ed20a3a8 concept;
+    class readme_health_eb3dfbe5 concept;
+    class readme_ip_block_e175632c concept;
+    class readme_iptables_4a6bacba concept;
+    class readme_journal_cde16a3d concept;
+    class readme_logins_00f02a00 concept;
+    class readme_mem_ria_4f82e6d2 concept;
+    class readme_servi_os_fc53aba4 concept;
+    class readme_sistema_9b713087 concept;
+    class readme_usu_rios_5039faf3 concept;
+    class readme_wazuh_e2249f0b concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>12. Endpoints</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 12. Endpoints.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Health</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Health.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Sistema</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Sistema.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Usuários</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Usuários.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Serviços</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Serviços.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Fail2Ban</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Fail2Ban.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Fail2Ban Unban</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Fail2Ban Unban.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>IP Block</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing IP Block.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Wazuh</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Wazuh.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Logins</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Logins.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Memória</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Memória.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>IPTables</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing IPTables.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Disco</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Disco.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Eventos de privilégio</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Eventos de privilégio.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Journal</code><br><small style="color:var(--muted)">README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Journal.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>README.md</code></td><td>15 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x14. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 9. Repository Guidelines ====== -->
+<h2 id="repository-guidelines">9. Repository Guidelines</h2>
+<p>Repository Guidelines groups implementation around agentsmd, guidelines, repository, project, mostly in AGENTS.md. This section covers 9 nodes and 8 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Repository Guidelines (9 nodes, 8 edges)
+    agents_repository_guidelines_cfec69ba("Repository Guidelines<br/><small>AGENTS.md</small>")
+    agents_e7052aeb("AGENTS.md")
+    agents_agent_specific_instructions_e7685f62("Agent-Specific Instructions<br/><small>AGENTS.md</small>")
+    agents_build_test_and_development_commands_10e55f08("Build, Test, and Development Commands<br/><small>AGENTS.md</small>")
+    agents_coding_style_naming_conventions_ffb696d2("Coding Style &amp; Naming Conventions<br/><small>AGENTS.md</small>")
+    agents_commit_pull_request_guidelines_c74e3eab("Commit &amp; Pull Request Guidelines<br/><small>AGENTS.md</small>")
+    agents_project_structure_module_organization_61aa784b("Project Structure &amp; Module Organization<br/><small>AGENTS.md</small>")
+    agents_regra_obrigat_ria_graphify_antes_de_codar_7cfd900d("Regra obrigatória: Graphify antes de codar<br/><small>AGENTS.md</small>")
+    agents_testing_guidelines_b7ade1f2("Testing Guidelines<br/><small>AGENTS.md</small>")
+    agents_e7052aeb -->|contains| agents_repository_guidelines_cfec69ba
+    agents_repository_guidelines_cfec69ba -->|contains| agents_agent_specific_instructions_e7685f62
+    agents_repository_guidelines_cfec69ba -->|contains| agents_build_test_and_development_commands_10e55f08
+    agents_repository_guidelines_cfec69ba -->|contains| agents_coding_style_naming_conventions_ffb696d2
+    agents_repository_guidelines_cfec69ba -->|contains| agents_commit_pull_request_guidelines_c74e3eab
+    agents_repository_guidelines_cfec69ba -->|contains| agents_project_structure_module_organization_61aa784b
+    agents_repository_guidelines_cfec69ba -->|contains| agents_regra_obrigat_ria_graphify_antes_de_codar_7cfd900d
+    agents_repository_guidelines_cfec69ba -->|contains| agents_testing_guidelines_b7ade1f2
+    class agents_repository_guidelines_cfec69ba concept;
+    class agents_e7052aeb concept;
+    class agents_agent_specific_instructions_e7685f62 concept;
+    class agents_build_test_and_development_commands_10e55f08 concept;
+    class agents_coding_style_naming_conventions_ffb696d2 concept;
+    class agents_commit_pull_request_guidelines_c74e3eab concept;
+    class agents_project_structure_module_organization_61aa784b concept;
+    class agents_regra_obrigat_ria_graphify_antes_de_codar_7cfd900d concept;
+    class agents_testing_guidelines_b7ade1f2 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>AGENTS.md</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing AGENTS.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Repository Guidelines</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Repository Guidelines.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Project Structure &amp; Module Organization</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Project Structure &amp; Module Organization.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Build, Test, and Development Commands</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Build, Test, and Development Commands.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Coding Style &amp; Naming Conventions</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Coding Style &amp; Naming Conventions.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Testing Guidelines</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Testing Guidelines.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Commit &amp; Pull Request Guidelines</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Commit &amp; Pull Request Guidelines.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Agent-Specific Instructions</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Agent-Specific Instructions.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Regra obrigatória: Graphify antes de codar</code><br><small style="color:var(--muted)">AGENTS.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Regra obrigatória: Graphify antes de codar.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>AGENTS.md</code></td><td>9 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x8. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 10. ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default ====== -->
+<h2 id="adr-011-princ-pio-do-privil-gio-m-nimo-e-deny-by">10. ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default</h2>
+<p>ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default groups implementation around adr, 011, principio, privilegio, mostly in docs/adr/ADR-011-principio-privilegio-minimo.md. This section covers 9 nodes and 8 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default (9 nodes, 8 edges)
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79("ADR-011 — Princípio do Privilégio Mínim...<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_4a5344ea("ADR-011-principio-privilegio-minimo.md")
+    docs_adr_adr_011_principio_privilegio_minimo_con_60d8e406("Consequências<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_con_b17f660d("Contexto<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_dec_224f8110("Decisão<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_jus_6116b1b4("Justificativa<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_mod_56a8f2c0("Modelo Permitido<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_mod_52091250("Modelo Proibido<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_reg_e94928ce("Regra de Implementação<br/><small>docs/adr/ADR-011-principio-privilegio-minimo.md</small>")
+    docs_adr_adr_011_principio_privilegio_minimo_4a5344ea -->|contains| docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_con_60d8e406
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_con_b17f660d
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_dec_224f8110
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_jus_6116b1b4
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_mod_56a8f2c0
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_mod_52091250
+    docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 -->|contains| docs_adr_adr_011_principio_privilegio_minimo_reg_e94928ce
+    class docs_adr_adr_011_principio_privilegio_minimo_adr_71000f79 concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_4a5344ea concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_con_60d8e406 concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_con_b17f660d concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_dec_224f8110 concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_jus_6116b1b4 concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_mod_56a8f2c0 concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_mod_52091250 concept;
+    class docs_adr_adr_011_principio_privilegio_minimo_reg_e94928ce concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>ADR-011-principio-privilegio-minimo.md</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-011-principio-privilegio-minimo.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Contexto</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Contexto.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Decisão</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Decisão.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Modelo Permitido</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Modelo Permitido.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Modelo Proibido</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Modelo Proibido.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Regra de Implementação</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Regra de Implementação.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Justificativa</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Justificativa.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Consequências</code><br><small style="color:var(--muted)">docs/adr/ADR-011-principio-privilegio-minimo.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Consequências.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>docs/adr/ADR-011-principio-privilegio-minimo.md</code></td><td>9 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x8. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 11. Alternativas Consideradas ====== -->
+<h2 id="alternativas-consideradas">11. Alternativas Consideradas</h2>
+<p>Alternativas Consideradas groups implementation around adrmd, alternativas, consideradas, oauth2, mostly in ADR.md. This section covers 4 nodes and 3 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Alternativas Consideradas (4 nodes, 3 edges)
+    adr_alternativas_consideradas_297_105c3532("Alternativas Consideradas<br/><small>ADR.md</small>")
+    adr_mtls_d7acc657("mTLS<br/><small>ADR.md</small>")
+    adr_oauth2_bd69c62d("OAuth2<br/><small>ADR.md</small>")
+    adr_openid_connect_ea9bdeed("OpenID Connect<br/><small>ADR.md</small>")
+    adr_alternativas_consideradas_297_105c3532 -->|contains| adr_mtls_d7acc657
+    adr_alternativas_consideradas_297_105c3532 -->|contains| adr_oauth2_bd69c62d
+    adr_alternativas_consideradas_297_105c3532 -->|contains| adr_openid_connect_ea9bdeed
+    class adr_alternativas_consideradas_297_105c3532 concept;
+    class adr_mtls_d7acc657 concept;
+    class adr_oauth2_bd69c62d concept;
+    class adr_openid_connect_ea9bdeed concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Alternativas Consideradas</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Alternativas Consideradas.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>OAuth2</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing OAuth2.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>OpenID Connect</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing OpenID Connect.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>mTLS</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing mTLS.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ADR.md</code></td><td>4 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 12. Alternativas Consideradas ====== -->
+<h2 id="alternativas-consideradas-5a7930">12. Alternativas Consideradas</h2>
+<p>Alternativas Consideradas groups implementation around adrmd, alternativas, consideradas, python, mostly in ADR.md. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Alternativas Consideradas (3 nodes, 2 edges)
+    adr_alternativas_consideradas_9ef7537e("Alternativas Consideradas<br/><small>ADR.md</small>")
+    adr_node_js_a3dd19ed("Node.js<br/><small>ADR.md</small>")
+    adr_python_15e9b524("Python<br/><small>ADR.md</small>")
+    adr_alternativas_consideradas_9ef7537e -->|contains| adr_node_js_a3dd19ed
+    adr_alternativas_consideradas_9ef7537e -->|contains| adr_python_15e9b524
+    class adr_alternativas_consideradas_9ef7537e concept;
+    class adr_node_js_a3dd19ed concept;
+    class adr_python_15e9b524 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Alternativas Consideradas</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Alternativas Consideradas.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Python</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Python.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Node.js</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Node.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ADR.md</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 13. Alternativas Consideradas ====== -->
+<h2 id="alternativas-consideradas-2">13. Alternativas Consideradas</h2>
+<p>Alternativas Consideradas groups implementation around adrmd, alternativas, consideradas, postgresql, mostly in ADR.md. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Alternativas Consideradas (3 nodes, 2 edges)
+    adr_alternativas_consideradas_192_0c24f259("Alternativas Consideradas<br/><small>ADR.md</small>")
+    adr_arquivos_json_85f2fa38("Arquivos JSON<br/><small>ADR.md</small>")
+    adr_postgresql_431c364e("PostgreSQL<br/><small>ADR.md</small>")
+    adr_alternativas_consideradas_192_0c24f259 -->|contains| adr_arquivos_json_85f2fa38
+    adr_alternativas_consideradas_192_0c24f259 -->|contains| adr_postgresql_431c364e
+    class adr_alternativas_consideradas_192_0c24f259 concept;
+    class adr_arquivos_json_85f2fa38 concept;
+    class adr_postgresql_431c364e concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Alternativas Consideradas</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Alternativas Consideradas.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>PostgreSQL</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing PostgreSQL.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Arquivos JSON</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Arquivos JSON.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ADR.md</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 14. Alternativas Consideradas ====== -->
+<h2 id="alternativas-consideradas-3">14. Alternativas Consideradas</h2>
+<p>Alternativas Consideradas groups implementation around adrmd, alternativas, consideradas, grpc, mostly in ADR.md. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Alternativas Consideradas (3 nodes, 2 edges)
+    adr_alternativas_consideradas_235_ad223d82("Alternativas Consideradas<br/><small>ADR.md</small>")
+    adr_grpc_d0aa79e7("gRPC<br/><small>ADR.md</small>")
+    adr_websocket_ce8224b6("WebSocket<br/><small>ADR.md</small>")
+    adr_alternativas_consideradas_235_ad223d82 -->|contains| adr_grpc_d0aa79e7
+    adr_alternativas_consideradas_235_ad223d82 -->|contains| adr_websocket_ce8224b6
+    class adr_alternativas_consideradas_235_ad223d82 concept;
+    class adr_grpc_d0aa79e7 concept;
+    class adr_websocket_ce8224b6 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Alternativas Consideradas</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Alternativas Consideradas.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>gRPC</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing gRPC.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>WebSocket</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing WebSocket.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ADR.md</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 15. Consequências ====== -->
+<h2 id="consequ-ncias">15. Consequências</h2>
+<p>Consequências groups implementation around adrmd, consequências, positivas, negativas, mostly in ADR.md. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Consequências (3 nodes, 2 edges)
+    adr_consequ_ncias_ab1d59ba("Consequências<br/><small>ADR.md</small>")
+    adr_negativas_e325a038("Negativas<br/><small>ADR.md</small>")
+    adr_positivas_c7412845("Positivas<br/><small>ADR.md</small>")
+    adr_consequ_ncias_ab1d59ba -->|contains| adr_negativas_e325a038
+    adr_consequ_ncias_ab1d59ba -->|contains| adr_positivas_c7412845
+    class adr_consequ_ncias_ab1d59ba concept;
+    class adr_negativas_e325a038 concept;
+    class adr_positivas_c7412845 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Consequências</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Consequências.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Positivas</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Positivas.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Negativas</code><br><small style="color:var(--muted)">ADR.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Negativas.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ADR.md</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 16. Other ====== -->
+<h2 id="other">16. Other</h2>
+<p>Other groups implementation around graphify, nvidiash, scripts, prdmd, mostly in scripts/graphify-nvidia.sh, go.mod, PRD.md. This section covers 4 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Other (4 nodes, 1 edges)
+    subgraph other_scripts_graphify_nvidia_sh_24750934["scripts/graphify-nvidia.sh"]
+        scripts_graphify_nvidia_e80daef7("graphify-nvidia.sh")
+        scripts_graphify_nvidia_sh_entry_7be9b0f4("graphify-nvidia.sh script<br/><small>scripts/graphify-nvidia.sh</small>")
+    end
+    prd_1392751e("PRD.md")
+    pkg_minion_a30d67b5("minion<br/><small>go.mod</small>")
     scripts_graphify_nvidia_e80daef7 -->|contains| scripts_graphify_nvidia_sh_entry_7be9b0f4
     class scripts_graphify_nvidia_e80daef7 function;
     class scripts_graphify_nvidia_sh_entry_7be9b0f4 function;
+    class prd_1392751e concept;
+    class pkg_minion_a30d67b5 module;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -733,6 +2819,22 @@ flowchart LR
   <td>No direct outbound edge</td>
   <td>Builds dependency relationships and graph data.</td>
 </tr>
+<tr>
+  <td>3</td>
+  <td><code>minion</code><br><small style="color:var(--muted)">go.mod</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>minion node in go.mod.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>PRD.md</code><br><small style="color:var(--muted)">PRD.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing PRD.md.</td>
+</tr>
 </table>
 
 <div class="grid">
@@ -741,67 +2843,13 @@ flowchart LR
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>scripts/graphify-nvidia.sh</code></td><td>2 nodes</td></tr>
+<tr><td><code>PRD.md</code></td><td>1 nodes</td></tr>
+<tr><td><code>go.mod</code></td><td>1 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
     <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 6. minion ====== -->
-<h2 id="minion">6. minion</h2>
-<p>minion groups implementation around minion, gomod, mostly in go.mod. This section covers 1 nodes and 0 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: minion (1 nodes, 0 edges)
-    pkg_minion_a30d67b5("minion<br/><small>go.mod</small>")
-    class pkg_minion_a30d67b5 module;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>minion</code><br><small style="color:var(--muted)">go.mod</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>minion node in go.mod.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>go.mod</code></td><td>1 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: No high-confidence call edges detected. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -812,18 +2860,18 @@ flowchart LR
   <div class="card">
     <h4>Graph</h4>
     <table style="width:100%;font-size:0.85rem;">
-      <tr><td>Nodes</td><td>133</td></tr>
-      <tr><td>Edges</td><td>233</td></tr>
+      <tr><td>Nodes</td><td>426</td></tr>
+      <tr><td>Edges</td><td>678</td></tr>
       <tr><td>Hyperedges</td><td>0</td></tr>
-      <tr><td>Communities</td><td>23</td></tr>
-      <tr><td>Documented Sections</td><td>5</td></tr>
+      <tr><td>Communities</td><td>35</td></tr>
+      <tr><td>Documented Sections</td><td>15</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Edge Confidence</h4>
     <table style="width:100%;font-size:0.85rem;">
-      <tr><td>EXTRACTED</td><td>201</td></tr>
-      <tr><td>INFERRED</td><td>32</td></tr>
+      <tr><td>EXTRACTED</td><td>608</td></tr>
+      <tr><td>INFERRED</td><td>70</td></tr>
       <tr><td>AMBIGUOUS</td><td>0</td></tr>
     </table>
   </div>
@@ -831,7 +2879,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>minion-agent — Architecture Documentation</p>
-  <p>Generated: 2026-07-04 01:12 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-07-04 02:07 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

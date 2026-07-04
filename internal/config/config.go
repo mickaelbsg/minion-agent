@@ -16,37 +16,24 @@ type Client struct {
 
 type Config struct {
 	API struct {
-		Bind string `json:"bind"`
+		Bind              string `json:"bind"`
+		AllowInsecureHTTP bool   `json:"allow_insecure_http"`
 	} `json:"api"`
 	Clients []Client `json:"clients"`
 	DBPath  string   `json:"db_path"`
 }
 
-func Load(path string) (*Config, error) {
+func Default() *Config {
+	cfg := &Config{}
+	cfg.API.Bind = "0.0.0.0:9870"
+	cfg.DBPath = "/opt/minion/minion.db"
+	cfg.Clients = []Client{}
+	return cfg
+}
+
+func Read(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		// If the config file does not exist we generate a minimal one with sane
-		// defaults and persist it so the binary can be started without manual
-		// preparation.
-		if os.IsNotExist(err) {
-			cfg := Config{}
-			// Apply the same defaults the original implementation used.
-			cfg.API.Bind = "0.0.0.0:9870"
-			cfg.DBPath = "/opt/minion/minion.db"
-			cfg.Clients = []Client{}
-
-			// Ensure the target directory exists before writing the file.
-			if dir := filepath.Dir(path); dir != "." && dir != "" {
-				if mkErr := os.MkdirAll(dir, 0o755); mkErr != nil {
-					return nil, fmt.Errorf("failed to create config directory %s: %w", dir, mkErr)
-				}
-			}
-			out, _ := json.MarshalIndent(&cfg, "", "  ")
-			if wErr := os.WriteFile(path, out, 0o644); wErr != nil {
-				return nil, fmt.Errorf("failed to write default config: %w", wErr)
-			}
-			return &cfg, nil
-		}
 		return nil, err
 	}
 
@@ -55,13 +42,62 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
-	// Preserve backward‑compatibility: fill defaults when fields are omitted.
+	applyDefaults(&cfg)
+
+	return &cfg, nil
+}
+
+func Save(path string, cfg *Config) error {
+	if cfg == nil {
+		return fmt.Errorf("config must not be nil")
+	}
+
+	applyDefaults(cfg)
+
+	if dir := filepath.Dir(path); dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("failed to create config directory %s: %w", dir, err)
+		}
+	}
+
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(path, out, 0o600); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
+	}
+
+	return nil
+}
+
+func Load(path string) (*Config, error) {
+	cfg, err := Read(path)
+	if err == nil {
+		return cfg, nil
+	}
+
+	if !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	cfg = Default()
+	if err := Save(path, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func applyDefaults(cfg *Config) {
 	if cfg.API.Bind == "" {
 		cfg.API.Bind = "0.0.0.0:9870"
 	}
 	if cfg.DBPath == "" {
 		cfg.DBPath = "/opt/minion/minion.db"
 	}
-
-	return &cfg, nil
+	if cfg.Clients == nil {
+		cfg.Clients = []Client{}
+	}
 }

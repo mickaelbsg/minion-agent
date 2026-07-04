@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -55,7 +56,11 @@ func (s *Server) Start() error {
 		return http.ListenAndServeTLS(addr, certFile, keyFile, mux)
 	}
 
-	log.Printf("TLS certificate/key not found; falling back to HTTP")
+	if !s.cfg.API.AllowInsecureHTTP {
+		return fmt.Errorf("TLS certificate/key not found at %s and %s; run `minion setup` or set api.allow_insecure_http=true for development", certFile, keyFile)
+	}
+
+	log.Printf("TLS certificate/key not found; insecure HTTP explicitly enabled in config")
 	return http.ListenAndServe(addr, mux)
 }
 
@@ -81,27 +86,20 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		clients, err := s.authClients()
+		if err != nil {
+			log.Printf("failed to resolve auth clients: %v", err)
+			s.writeError(w, http.StatusInternalServerError, "authentication backend unavailable")
+			return
+		}
+
 		authenticated := false
-		for _, c := range s.cfg.Clients {
+		for _, c := range clients {
 			if c.Enabled && security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
 				r = withClientName(r, c.Name)
 				setClientNameOnWriter(w, c.Name)
 				authenticated = true
 				break
-			}
-		}
-
-		if !authenticated && s.storage != nil {
-			clients, err := s.storage.GetClients()
-			if err == nil {
-				for _, c := range clients {
-					if c.Enabled && security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
-						r = withClientName(r, c.Name)
-						setClientNameOnWriter(w, c.Name)
-						authenticated = true
-						break
-					}
-				}
 			}
 		}
 
@@ -112,6 +110,30 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r)
 	}
+}
+
+func (s *Server) authClients() ([]storage.Client, error) {
+	if s.storage != nil {
+		clients, err := s.storage.GetClients()
+		if err != nil {
+			return nil, err
+		}
+		if len(clients) > 0 {
+			return clients, nil
+		}
+	}
+
+	clients := make([]storage.Client, 0, len(s.cfg.Clients))
+	for _, c := range s.cfg.Clients {
+		clients = append(clients, storage.Client{
+			Name:       c.Name,
+			AllowedIPs: c.AllowedIPs,
+			APIKeyHash: c.APIKeyHash,
+			Enabled:    c.Enabled,
+		})
+	}
+
+	return clients, nil
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

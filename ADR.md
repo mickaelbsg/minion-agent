@@ -314,6 +314,82 @@ Postergado para V2.
 
 ---
 
+# ADR-006A — Interface Operacional Guiada na CLI
+
+**Status:** Aprovado
+
+---
+
+# Contexto
+
+O Minion possui operações locais importantes para administradores humanos, como setup inicial, criação de cliente bootstrap, ajuste de configuração e inspeção de estado.
+
+Os fluxos puramente por flags e subcomandos continuam adequados para automação, mas aumentam atrito operacional para uso humano recorrente.
+
+Também era necessário garantir que qualquer interface mais amigável continuasse respeitando as restrições de segurança do produto:
+
+* sem shell arbitrário
+* sem elevação implícita
+* sem bypass das validações já existentes
+
+---
+
+# Decisão
+
+O Minion oferecerá uma interface guiada em terminal através de `minion ui`.
+
+Essa interface:
+
+* será voltada a operadores humanos
+* reutilizará a mesma camada administrativa usada pelos comandos legados
+* cobrirá setup, configuração, clientes e status resumido
+* exigirá TTY real
+* não substituirá os comandos não interativos existentes
+
+Operações privilegiadas continuarão exigindo execução explícita com `sudo`.
+
+---
+
+# Justificativa
+
+* Reduz erro operacional em setup e configuração.
+* Facilita adoção por operadores sem quebrar automações existentes.
+* Mantém a segurança concentrada em fluxos explícitos e validados.
+* Evita duplicação de regra de negócio ao compartilhar a mesma camada administrativa entre UI e CLI tradicional.
+
+---
+
+# Consequências
+
+## Positivas
+
+* Melhor experiência para administradores humanos.
+* Menor necessidade de editar JSON manualmente.
+* Menor risco de drift entre interface humana e comandos automatizados.
+
+## Negativas
+
+* Introduz dependências de TUI no binário principal.
+* Exige manutenção adicional de navegação, formulários e testes de interface.
+
+---
+
+# Alternativas Consideradas
+
+## Apenas comandos por flags
+
+Rejeitado.
+
+Continua útil para automação, mas oferece experiência fraca para operação humana frequente.
+
+## Painel web local
+
+Adiado.
+
+Aumentaria a superfície exposta e traria complexidade desnecessária para a V1 operacional.
+
+---
+
 # ADR-007 — Geração de API Keys
 
 **Status:** Aprovado

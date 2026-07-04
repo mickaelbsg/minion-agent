@@ -4,12 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"minion/internal/admin"
 	"minion/internal/config"
-	"minion/internal/security"
 	"minion/internal/server"
 	"minion/internal/storage"
+	"minion/internal/ui"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -19,6 +19,7 @@ func main() {
 	createClient := fs.Bool("create-client", false, "Create a new API client and print the API key")
 	clientName := fs.String("name", "", "Name of the client")
 	clientIPs := fs.String("ips", "", "Comma separated list of allowed IPs/CIDRs")
+	uiSection := fs.String("section", "", "UI section: setup, config, clients, status")
 
 	// Lógica para permitir flags em qualquer lugar:
 	// Coletamos todos os argumentos e separamos subcomandos de flags
@@ -46,6 +47,11 @@ func main() {
 		switch subcommands[0] {
 		case "setup":
 			setup(*configPath, *clientName, *clientIPs)
+			return
+		case "ui":
+			if err := ui.Run(*configPath, *uiSection); err != nil {
+				log.Fatalf("failed to start UI: %v", err)
+			}
 			return
 		case "client":
 			cmdArgs := []string{}
@@ -85,83 +91,20 @@ func main() {
 }
 
 func setup(configPath, clientName, clientIPs string) {
-	if os.Geteuid() != 0 {
-		log.Fatal("setup must be run as root. Use: sudo minion setup")
-	}
-
-	if err := os.MkdirAll("/etc/minion/tls", 0755); err != nil {
-		log.Fatalf("failed to create /etc/minion/tls: %v", err)
-	}
-	certPath := "/etc/minion/tls/minion.crt"
-	keyPath := "/etc/minion/tls/minion.key"
-	if _, err := os.Stat(certPath); os.IsNotExist(err) {
-		cmd := exec.Command("openssl", "req", "-newkey", "rsa:2048", "-nodes",
-			"-keyout", keyPath, "-x509", "-days", "365", "-out", certPath,
-			"-subj", "/CN=minion")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			log.Fatalf("failed to generate TLS cert: %v", err)
-		}
-		log.Printf("Generated self-signed TLS cert at %s", certPath)
-	}
-
-	cfg, err := config.Load(configPath)
+	service := admin.NewService(configPath)
+	result, err := service.Setup(admin.SetupOptions{
+		ClientName: clientName,
+		ClientIPs:  clientIPs,
+	})
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
-	if err := os.Chmod(configPath, 0600); err != nil {
-		log.Printf("warning: failed to set config permissions: %v", err)
-	}
-
-	stor, err := storage.New(cfg.DBPath)
-	if err != nil {
-		log.Fatalf("failed to initialise storage: %v", err)
-	}
-	if err := os.Chmod(cfg.DBPath, 0600); err != nil {
-		log.Printf("warning: failed to set database permissions: %v", err)
-	}
-
-	clients, err := stor.GetClients()
-	if err != nil {
-		log.Fatalf("failed to list clients: %v", err)
-	}
-
-	var generatedKey string
-	createdClient := ""
-	createdIPs := ""
-	if len(clients) == 0 {
-		createdClient = clientName
-		if createdClient == "" {
-			createdClient = "default"
-		}
-		createdIPs = clientIPs
-		if createdIPs == "" {
-			createdIPs = "127.0.0.1/32"
-		}
-
-		key, err := security.GenerateAPIKey()
-		if err != nil {
-			log.Fatalf("failed to generate API key: %v", err)
-		}
-		generatedKey = key
-		hash := security.HashAPIKey(key)
-		if err := stor.InsertClient(createdClient, createdIPs, hash); err != nil {
-			log.Fatalf("failed to create bootstrap client: %v", err)
-		}
-	}
-
-	if err := exec.Command("systemctl", "enable", "--now", "minion.service").Run(); err != nil {
-		log.Printf("warning: failed to enable/start systemd service: %v", err)
-	} else {
-		log.Printf("systemd minion.service enabled and started")
+		log.Fatalf("setup failed: %v", err)
 	}
 
 	fmt.Println("\nMinion setup completed.")
-	if generatedKey != "" {
-		fmt.Printf("Bootstrap client: %s\n", createdClient)
-		fmt.Printf("Allowed IPs: %s\n", createdIPs)
-		fmt.Printf("API Key: %s\n", generatedKey)
+	if result.BootstrapCreated {
+		fmt.Printf("Bootstrap client: %s\n", result.ClientName)
+		fmt.Printf("Allowed IPs: %s\n", result.ClientIPs)
+		fmt.Printf("API Key: %s\n", result.APIKey)
 		fmt.Println("\nStore this API key now. It is shown only once and only its hash is stored.")
 	} else {
 		fmt.Println("Existing API clients found. No new bootstrap API key was generated.")
@@ -169,6 +112,7 @@ func setup(configPath, clientName, clientIPs string) {
 }
 
 func handleClientCommands(args []string, configPath, name, ips string) {
+	service := admin.NewService(configPath)
 	cmd := ""
 	if len(args) > 0 {
 		cmd = args[0]
@@ -176,32 +120,21 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		cmd = "create"
 	}
 
-	cfg, _ := config.Load(configPath)
-	dbPath := "/etc/minion/minion.db"
-	if cfg != nil && cfg.DBPath != "" {
-		dbPath = cfg.DBPath
-	}
-	stor, err := storage.New(dbPath)
-	if err != nil {
-		log.Fatalf("failed to open storage: %v", err)
-	}
-
 	switch cmd {
 	case "create":
 		if name == "" || ips == "" {
 			log.Fatal("--name and --ips are required. Example: minion add client --name severino --ips 127.0.0.1/32")
 		}
-		key, err := security.GenerateAPIKey()
+		client, err := service.CreateClient(name, ips)
 		if err != nil {
-			log.Fatalf("failed to generate API key: %v", err)
-		}
-		hash := security.HashAPIKey(key)
-		if err := stor.InsertClient(name, ips, hash); err != nil {
 			log.Fatalf("failed to create client: %v", err)
 		}
-		fmt.Printf("Client: %s\nAPI Key: %s\nAPI Key Hash: %s\n", name, key, hash)
+		fmt.Printf("Client: %s\nAPI Key: %s\nAPI Key Hash: %s\n", client.Name, client.APIKey, client.APIKeyHash)
 	case "list":
-		clients, _ := stor.GetClients()
+		clients, err := service.ListClients()
+		if err != nil {
+			log.Fatalf("failed to list clients: %v", err)
+		}
 		fmt.Printf("%-20s %-30s %-10s\n", "NAME", "ALLOWED IPS", "ENABLED")
 		for _, c := range clients {
 			fmt.Printf("%-20s %-30s %-10v\n", c.Name, strings.Join(c.AllowedIPs, ","), c.Enabled)
@@ -210,19 +143,25 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		if len(args) < 2 {
 			log.Fatal("client name required")
 		}
-		stor.UpdateClientStatus(args[1], true)
+		if err := service.SetClientEnabled(args[1], true); err != nil {
+			log.Fatalf("failed to enable client: %v", err)
+		}
 		fmt.Printf("Client %s enabled\n", args[1])
 	case "disable":
 		if len(args) < 2 {
 			log.Fatal("client name required")
 		}
-		stor.UpdateClientStatus(args[1], false)
+		if err := service.SetClientEnabled(args[1], false); err != nil {
+			log.Fatalf("failed to disable client: %v", err)
+		}
 		fmt.Printf("Client %s disabled\n", args[1])
 	case "delete":
 		if len(args) < 2 {
 			log.Fatal("client name required")
 		}
-		stor.DeleteClient(args[1])
+		if err := service.DeleteClient(args[1]); err != nil {
+			log.Fatalf("failed to delete client: %v", err)
+		}
 		fmt.Printf("Client %s deleted\n", args[1])
 	default:
 		fmt.Println("Usage: minion client [create|list|enable|disable|delete]")

@@ -21,9 +21,7 @@ func TestAuditMiddlewareCreatesEntry(t *testing.T) {
 
 	// Create server with storage (assuming NewServer exists that takes storage)
 	// Minimal config with bind address (not used for this test)
-	srvCfg := &config.Config{API: struct {
-		Bind string `json:"bind"`
-	}{Bind: ""}}
+	srvCfg := &config.Config{}
 	srv := New(srvCfg, s)
 	// Simple handler returning 200
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

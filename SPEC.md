@@ -71,6 +71,13 @@ Arquivo:
 /etc/minion/config.json
 ```
 
+Campos principais atuais:
+
+* `api.bind`
+* `api.allow_insecure_http`
+* `db_path`
+* `clients`
+
 ## Porta padrão
 
 ```text
@@ -132,6 +139,7 @@ Responsável por:
 * autorização
 * exposição de endpoints
 * separação entre consultas e capacidades administrativas futuras
+* integração com uma camada administrativa local usada pela CLI interativa
 
 ---
 
@@ -173,6 +181,8 @@ Cada cliente autorizado possui:
 * IP permitido
 * API Key
 * Status
+
+Na implementação atual, clientes persistidos no SQLite são a fonte principal de autenticação. O array `clients` no arquivo de configuração permanece como fallback de compatibilidade quando ainda não existem clientes persistidos no banco.
 
 O Minion deve rodar com as permissões necessárias via systemd. O runtime do Minion não deve chamar `sudo` internamente.
 
@@ -235,6 +245,33 @@ Argon2id
 
 # Gerenciamento de Clientes
 
+## UI guiada de operação
+
+Para operadores humanos, a V1 também possui uma interface interativa no terminal:
+
+```bash
+sudo minion ui
+```
+
+Seções disponíveis:
+
+```bash
+sudo minion ui --section setup
+sudo minion ui --section config
+sudo minion ui --section clients
+minion ui --section status
+```
+
+Regras da UI:
+
+* exige TTY real
+* não executa shell arbitrário
+* não substitui os comandos não interativos
+* exige root para setup, configuração e clientes
+* permite status resumido sem necessariamente exigir escrita
+
+---
+
 ## Criar Cliente
 
 ```bash
@@ -280,6 +317,8 @@ minion client enable api_severino
 ```bash
 minion client delete api_severino
 ```
+
+Os fluxos acima continuam suportados e são o caminho recomendado para automação e uso não interativo.
 
 ---
 

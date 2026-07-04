@@ -1,15 +1,16 @@
-# Graph Report - .  (2026-07-03)
+# Graph Report - minion-agent  (2026-07-03)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 46 files · ~24,128 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 133 nodes · 233 edges · 23 communities (12 shown, 11 thin omitted)
-- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 32 edges (avg confidence: 0.8)
+- 426 nodes · 678 edges · 35 communities (29 shown, 6 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e4a9651f`
+- Built from commit: `af859f51`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -32,23 +33,34 @@
 - [[_COMMUNITY_GetMemory|GetMemory]]
 - [[_COMMUNITY_GetServices|GetServices]]
 - [[_COMMUNITY_GetSystem|GetSystem]]
-- [[_COMMUNITY_GetWazuhStatus|GetWazuhStatus]]
 - [[_COMMUNITY_build_deb.sh|build_deb.sh]]
 - [[_COMMUNITY_IsIPBlocked|IsIPBlocked]]
 - [[_COMMUNITY_graphify-nvidia.sh|graphify-nvidia.sh]]
 - [[_COMMUNITY_minion|minion]]
+- [[_COMMUNITY_12. Endpoints|12. Endpoints]]
+- [[_COMMUNITY_SPEC|SPEC.md]]
+- [[_COMMUNITY_CLAUDE|CLAUDE.md]]
+- [[_COMMUNITY_API|API]]
+- [[_COMMUNITY_Repository Guidelines|Repository Guidelines]]
+- [[_COMMUNITY_ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default|ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default]]
+- [[_COMMUNITY_Minion Agent Improvements Implementation Plan|Minion Agent Improvements Implementation Plan]]
+- [[_COMMUNITY_Alternativas Consideradas|Alternativas Consideradas]]
+- [[_COMMUNITY_Alternativas Consideradas|Alternativas Consideradas]]
+- [[_COMMUNITY_Alternativas Consideradas|Alternativas Consideradas]]
+- [[_COMMUNITY_Alternativas Consideradas|Alternativas Consideradas]]
+- [[_COMMUNITY_Consequências|Consequências]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Server` - 22 edges
-2. `Storage` - 10 edges
-3. `HashAPIKey()` - 6 edges
-4. `setup()` - 5 edges
-5. `handleClientCommands()` - 5 edges
-6. `Config` - 5 edges
-7. `Load()` - 5 edges
-8. `VerifyAPIKey()` - 5 edges
-9. `New()` - 5 edges
-10. `main()` - 4 edges
+1. `Model` - 41 edges
+2. `Server` - 23 edges
+3. `Minion Agent` - 23 edges
+4. `12. Endpoints` - 15 edges
+5. `Service` - 13 edges
+6. `NewService()` - 13 edges
+7. `NewModel()` - 12 edges
+8. `Config` - 11 edges
+9. `Storage` - 11 edges
+10. `Default()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `main()` --calls--> `HashAPIKey()`  [INFERRED]
@@ -57,35 +69,35 @@
   cmd/check/main.go → internal/security/security.go
 - `main()` --calls--> `Load()`  [INFERRED]
   cmd/minion/main.go → internal/config/config.go
-- `setup()` --calls--> `Load()`  [INFERRED]
-  cmd/minion/main.go → internal/config/config.go
-- `setup()` --calls--> `GenerateAPIKey()`  [INFERRED]
-  cmd/minion/main.go → internal/security/security.go
+- `setup()` --calls--> `NewService()`  [INFERRED]
+  cmd/minion/main.go → internal/admin/service.go
+- `handleClientCommands()` --calls--> `NewService()`  [INFERRED]
+  cmd/minion/main.go → internal/admin/service.go
 
 ## Import Cycles
 - None detected.
 
-## Communities (23 total, 11 thin omitted)
+## Communities (35 total, 6 thin omitted)
 
 ### Community 0 - ".auth"
-Cohesion: 0.17
-Nodes (14): main(), handleClientCommands(), main(), setup(), main(), Load(), GenerateAPIKey(), HashAPIKey() (+6 more)
+Cohesion: 0.10
+Nodes (20): CommandRunner, ConfigUpdate, CreatedClient, execRunner, Service, SetupOptions, SetupResult, Status (+12 more)
 
 ### Community 1 - "Server"
-Cohesion: 0.43
-Nodes (3): Request, ResponseWriter, Server
+Cohesion: 0.17
+Nodes (11): Service, SystemInfo, IsIPBlocked(), GetServices(), GetSystem(), fileExists(), Client, HandlerFunc (+3 more)
 
 ### Community 2 - "Storage"
-Cohesion: 0.19
-Nodes (7): DB, initSchema(), New(), T, TestStorageCreatesDBDir(), Client, Storage
+Cohesion: 0.12
+Nodes (13): DB, T, TestAuthFallsBackToConfigClientsWhenDatabaseIsEmpty(), TestAuthPrefersDatabaseClientsWhenAvailable(), T, TestAuditMiddlewareCreatesEntry(), New(), initSchema() (+5 more)
 
 ### Community 3 - "middleware.go"
 Cohesion: 0.18
 Nodes (10): clientNameFromContext(), HandlerFunc, Request, ResponseWriter, Server, setClientNameOnWriter(), withClientName(), clientNameSetter (+2 more)
 
 ### Community 4 - "Config"
-Cohesion: 0.22
-Nodes (6): Client, Config, T, TestAuditMiddlewareCreatesEntry(), fileExists(), New()
+Cohesion: 0.05
+Nodes (43): ADR-001 — Arquitetura Base do Minion, ADR-002 — Linguagem de Desenvolvimento, ADR-003 — Distribuição em Binário Único, ADR-004 — Banco de Dados Local, ADR-005 — Modelo de Comunicação, ADR-006 — Modelo de Segurança, ADR-007 — Geração de API Keys, ADR-008 — Modelo de Permissões (+35 more)
 
 ### Community 5 - "GetIPTablesRules"
 Cohesion: 1.00
@@ -115,19 +127,89 @@ Nodes (3): GO111MODULE, log(), install.sh script
 Cohesion: 0.67
 Nodes (3): GO111MODULE, log(), install_minion.sh script
 
+### Community 15 - "GetMemory"
+Cohesion: 0.40
+Nodes (4): MemoryInfo, WazuhStatus, GetMemory(), GetWazuhStatus()
+
+### Community 16 - "GetServices"
+Cohesion: 0.12
+Nodes (14): Cmd, File, ensureInteractive(), filepathOrFallback(), formatBoolPath(), Client, newInput(), NewModel() (+6 more)
+
+### Community 17 - "GetSystem"
+Cohesion: 0.14
+Nodes (25): fakeRunner, handleClientCommands(), main(), setup(), Client, Config, NewService(), T (+17 more)
+
+### Community 20 - "IsIPBlocked"
+Cohesion: 0.08
+Nodes (23): 10. Gerenciamento de clientes, 11. Autenticação, 13. Auditoria, 14. Build local, 15. Como gerar um `.deb` local, 16. Atualização manual, 17. Segurança operacional, 18. Troubleshooting (+15 more)
+
+### Community 23 - "12. Endpoints"
+Cohesion: 0.13
+Nodes (15): 12. Endpoints, Disco, Eventos de privilégio, Fail2Ban, Fail2Ban Unban, Health, IP Block, IPTables (+7 more)
+
+### Community 24 - "SPEC.md"
+Cohesion: 0.04
+Nodes (46): API Key, API Server, Arquitetura, Audit Logging, Auditoria, Ações Administrativas Futuras, Banco Local, Cliente (+38 more)
+
+### Community 25 - "CLAUDE.md"
+Cohesion: 0.20
+Nodes (8): API Surface, Client Management, Common Commands, Configuration & Runtime Files, High-Level Architecture, Maintenance Notes, Packaging / Installation, Reference Documents
+
+### Community 26 - "API"
+Cohesion: 0.20
+Nodes (10): API, Eventos de Privilégio, Fail2Ban, Health, Journal, Logins, Serviços, Sistema (+2 more)
+
+### Community 27 - "Repository Guidelines"
+Cohesion: 0.22
+Nodes (8): Agent-Specific Instructions, Build, Test, and Development Commands, Coding Style & Naming Conventions, Commit & Pull Request Guidelines, Project Structure & Module Organization, Regra obrigatória: Graphify antes de codar, Repository Guidelines, Testing Guidelines
+
+### Community 28 - "ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default"
+Cohesion: 0.22
+Nodes (8): ADR-011 — Princípio do Privilégio Mínimo e Deny-by-Default, Consequências, Contexto, Decisão, Justificativa, Modelo Permitido, Modelo Proibido, Regra de Implementação
+
+### Community 29 - "Minion Agent Improvements Implementation Plan"
+Cohesion: 0.22
+Nodes (8): Minion Agent Improvements Implementation Plan, Self‑Review Checklist, Task 1: Garantir diretório do SQLite exista, Task 2: Trocar sal estático por sal aleatório nas chaves API, Task 3: Validar entrada no endpoint Fail2Ban unban, Task 4: Adicionar middleware de auditoria, Task 5: Linting & CI integration, Task 6: Systemd unit file
+
+### Community 35 - "Alternativas Consideradas"
+Cohesion: 0.50
+Nodes (4): Alternativas Consideradas, mTLS, OAuth2, OpenID Connect
+
+### Community 37 - "Alternativas Consideradas"
+Cohesion: 0.67
+Nodes (3): Alternativas Consideradas, Node.js, Python
+
+### Community 38 - "Alternativas Consideradas"
+Cohesion: 0.67
+Nodes (3): Alternativas Consideradas, Arquivos JSON, PostgreSQL
+
+### Community 39 - "Alternativas Consideradas"
+Cohesion: 0.67
+Nodes (3): Alternativas Consideradas, gRPC, WebSocket
+
+### Community 40 - "Consequências"
+Cohesion: 0.67
+Nodes (3): Consequências, Negativas, Positivas
+
 ## Knowledge Gaps
-- **8 isolated node(s):** `build_deb.sh script`, `minion`, `GO111MODULE`, `GO111MODULE`, `contextKey` (+3 more)
+- **174 isolated node(s):** `build_deb.sh script`, `minion`, `GO111MODULE`, `GO111MODULE`, `contextKey` (+169 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Server` connect `Server` to `.auth`, `Storage`, `Config`?**
-  _High betweenness centrality (0.411) - this node is a cross-community bridge._
-- **Why does `Storage` connect `Storage` to `Server`, `Config`?**
-  _High betweenness centrality (0.161) - this node is a cross-community bridge._
-- **Are the 5 inferred relationships involving `HashAPIKey()` (e.g. with `main()` and `handleClientCommands()`) actually correct?**
-  _`HashAPIKey()` has 5 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `Server` connect `Server` to `GetSystem`, `Storage`?**
+  _High betweenness centrality (0.122) - this node is a cross-community bridge._
+- **Why does `Config` connect `GetSystem` to `Server`, `Storage`?**
+  _High betweenness centrality (0.087) - this node is a cross-community bridge._
+- **Why does `Model` connect `GetServices` to `.auth`?**
+  _High betweenness centrality (0.067) - this node is a cross-community bridge._
 - **What connects `build_deb.sh script`, `minion`, `GO111MODULE` to the rest of the system?**
-  _8 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _174 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `.auth` be split into smaller, more focused modules?**
+  _Cohesion score 0.10037878787878787 - nodes in this community are weakly interconnected._
+- **Should `Storage` be split into smaller, more focused modules?**
+  _Cohesion score 0.11688311688311688 - nodes in this community are weakly interconnected._
+- **Should `Config` be split into smaller, more focused modules?**
+  _Cohesion score 0.045454545454545456 - nodes in this community are weakly interconnected._

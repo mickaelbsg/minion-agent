@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`cmd/` contains the entrypoints: `cmd/minion` for the service, `cmd/check` for API key hashing, and `cmd/verify` for verification helpers. Core code lives in `internal/`: `server/` for HTTP handlers and middleware, `storage/` for SQLite persistence, `security/` for API key and IP checks, `config/` for configuration loading, and `collectors/` for host-level data gathering. Deployment assets are under `systemd/`; packaging and install scripts live at the repo root. Long-form docs and architecture notes live in `docs/`.
+`cmd/` contains the entrypoints: `cmd/minion` for the service and operator UI, `cmd/check` for API key hashing, and `cmd/verify` for verification helpers. Core code lives in `internal/`: `admin/` for reusable setup/config/client/status operations, `ui/` for the terminal wizard, `server/` for HTTP handlers and middleware, `storage/` for SQLite persistence, `security/` for API key and IP checks, `config/` for configuration loading/persistence, and `collectors/` for host-level data gathering. Deployment assets are under `systemd/`; packaging and install scripts live at the repo root. Long-form docs and architecture notes live in `docs/`.
 
 ## Build, Test, and Development Commands
 
