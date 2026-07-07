@@ -1,7 +1,7 @@
 package collectors
 
 import (
-	"os/exec"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -11,6 +11,20 @@ type JournalEntry struct {
 	Host      string `json:"host"`
 	Process   string `json:"process"`
 	Message   string `json:"message"`
+}
+
+func IsValidJournalLevel(level string) bool {
+	if level == "" {
+		return true
+	}
+
+	switch level {
+	case "0", "1", "2", "3", "4", "5", "6", "7",
+		"emerg", "alert", "crit", "err", "warning", "notice", "info", "debug":
+		return true
+	default:
+		return false
+	}
 }
 
 func GetJournalLogs(limit string, level string) ([]JournalEntry, error) {
@@ -26,13 +40,15 @@ func GetJournalLogs(limit string, level string) ([]JournalEntry, error) {
 	}
 
 	if level != "" {
+		if !IsValidJournalLevel(level) {
+			return nil, fmt.Errorf("invalid journal level")
+		}
 		args = append(args, "-p", level)
 	}
 
 	// The service is expected to run with the required system privileges via systemd.
 	// Do not call sudo from inside the agent runtime.
-	cmd := exec.Command("journalctl", args...)
-	output, err := cmd.Output()
+	output, err := runCommandOutput("journalctl", args...)
 	if err != nil {
 		return nil, err
 	}
