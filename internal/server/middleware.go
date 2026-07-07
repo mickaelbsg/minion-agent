@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net"
 	"net/http"
 )
@@ -36,10 +35,23 @@ func setClientNameOnWriter(w http.ResponseWriter, name string) {
 	}
 }
 
+type auditDetailSetter interface {
+	setAuditDetail(action, target, detail string)
+}
+
+func setAuditDetailOnWriter(w http.ResponseWriter, action, target, detail string) {
+	if setter, ok := w.(auditDetailSetter); ok {
+		setter.setAuditDetail(action, target, detail)
+	}
+}
+
 type statusRecorder struct {
 	http.ResponseWriter
 	status     int
 	clientName string
+	action     string
+	target     string
+	detail     string
 }
 
 func (rec *statusRecorder) WriteHeader(code int) {
@@ -49,6 +61,12 @@ func (rec *statusRecorder) WriteHeader(code int) {
 
 func (rec *statusRecorder) setClientName(name string) {
 	rec.clientName = name
+}
+
+func (rec *statusRecorder) setAuditDetail(action, target, detail string) {
+	rec.action = action
+	rec.target = target
+	rec.detail = detail
 }
 
 // audit is a middleware that records each request to the storage layer.
@@ -67,6 +85,8 @@ func (s *Server) audit(next http.HandlerFunc) http.HandlerFunc {
 			host = r.RemoteAddr
 		}
 		// Insert the audit record; ignore error as logging is best-effort.
-		_ = s.storage.InsertAudit(clientName, host, r.Method, r.URL.Path, rec.status)
+		if s.storage != nil {
+			_ = s.storage.InsertAuditDetail(clientName, host, r.Method, r.URL.Path, rec.status, rec.action, rec.target, rec.detail)
+		}
 	}
 }
