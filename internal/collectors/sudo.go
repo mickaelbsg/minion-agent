@@ -1,9 +1,6 @@
 package collectors
 
-import (
-	"os/exec"
-	"strings"
-)
+import "strings"
 
 type SudoEvent struct {
 	Timestamp string `json:"timestamp"`
@@ -16,8 +13,7 @@ type SudoEvent struct {
 func GetSudoEvents() ([]SudoEvent, error) {
 	// The service is expected to run with the required system privileges via systemd.
 	// Do not call sudo from inside the agent runtime.
-	cmd := exec.Command("journalctl", "_COMM=sudo", "-n", "50", "--no-pager")
-	output, err := cmd.Output()
+	output, err := runCommandOutput("journalctl", "_COMM=sudo", "-n", "50", "--no-pager")
 	if err != nil {
 		return nil, err
 	}
