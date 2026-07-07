@@ -1,7 +1,6 @@
 package collectors
 
 import (
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -18,7 +17,7 @@ func GetFail2BanEvents() ([]Fail2BanEvent, error) {
 	var result []Fail2BanEvent
 
 	// Get list of jails
-	out, err := exec.Command("fail2ban-client", "status").Output()
+	out, err := runCommandOutput("fail2ban-client", "status")
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +34,7 @@ func GetFail2BanEvents() ([]Fail2BanEvent, error) {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	for _, jail := range jails {
-		jailOut, err := exec.Command("fail2ban-client", "status", jail).Output()
+		jailOut, err := runCommandOutput("fail2ban-client", "status", jail)
 		if err != nil {
 			continue // skip jail on error
 		}
@@ -53,4 +52,8 @@ func GetFail2BanEvents() ([]Fail2BanEvent, error) {
 		}
 	}
 	return result, nil
+}
+
+func UnbanFail2BanIP(jail, ip string) ([]byte, error) {
+	return runCommandCombinedOutput("fail2ban-client", "set", jail, "unbanip", ip)
 }
