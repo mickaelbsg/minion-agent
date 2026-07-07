@@ -3,6 +3,9 @@
     "bind": "0.0.0.0:9870",
     "allow_insecure_http": false
   },
+  "security": {
+    "allowed_fail2ban_jails": ["sshd", "apache-auth", "recidive"]
+  },
   "db_path": "/opt/minion/minion.db",
   "clients": [
     {
