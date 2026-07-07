@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net"
 	"net/http"
 )
@@ -9,13 +10,11 @@ type contextKey string
 
 const clientNameKey contextKey = "clientName"
 
-// withClientName stores the authenticated client name in the request context.
 func withClientName(r *http.Request, name string) *http.Request {
 	ctx := context.WithValue(r.Context(), clientNameKey, name)
 	return r.WithContext(ctx)
 }
 
-// clientNameFromContext retrieves the client name from the request context, if any.
 func clientNameFromContext(r *http.Request) string {
 	if v := r.Context().Value(clientNameKey); v != nil {
 		if s, ok := v.(string); ok {
@@ -69,13 +68,11 @@ func (rec *statusRecorder) setAuditDetail(action, target, detail string) {
 	rec.detail = detail
 }
 
-// audit is a middleware that records each request to the storage layer.
 func (s *Server) audit(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
-		// Call the next handler.
 		next(rec, r)
-		// Gather audit data.
+
 		clientName := rec.clientName
 		if clientName == "" {
 			clientName = clientNameFromContext(r)
@@ -84,7 +81,6 @@ func (s *Server) audit(next http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			host = r.RemoteAddr
 		}
-		// Insert the audit record; ignore error as logging is best-effort.
 		if s.storage != nil {
 			_ = s.storage.InsertAuditDetail(clientName, host, r.Method, r.URL.Path, rec.status, rec.action, rec.target, rec.detail)
 		}
