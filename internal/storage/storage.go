@@ -60,15 +60,23 @@ func initSchema(db *sql.DB) error {
 		ip TEXT,
 		method TEXT,
 		path TEXT,
-		status INTEGER
+		status INTEGER,
+		action TEXT,
+		target TEXT,
+		detail TEXT
 	);`
 	if _, err := db.Exec(createAudit); err != nil {
+		return err
+	}
+	if err := migrateAuditSchema(db); err != nil {
 		return err
 	}
 	createAuditIndexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit(timestamp);`,
 		`CREATE INDEX IF NOT EXISTS idx_audit_client_name ON audit(client_name);`,
 		`CREATE INDEX IF NOT EXISTS idx_audit_path ON audit(path);`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_action ON audit(action);`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_target ON audit(target);`,
 	}
 	for _, stmt := range createAuditIndexes {
 		if _, err := db.Exec(stmt); err != nil {
@@ -78,13 +86,31 @@ func initSchema(db *sql.DB) error {
 	return nil
 }
 
+func migrateAuditSchema(db *sql.DB) error {
+	migrations := []string{
+		`ALTER TABLE audit ADD COLUMN action TEXT;`,
+		`ALTER TABLE audit ADD COLUMN target TEXT;`,
+		`ALTER TABLE audit ADD COLUMN detail TEXT;`,
+	}
+	for _, stmt := range migrations {
+		if _, err := db.Exec(stmt); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Storage) InsertAudit(clientName, ip, method, path string, status int) error {
+	return s.InsertAuditDetail(clientName, ip, method, path, status, "", "", "")
+}
+
+func (s *Storage) InsertAuditDetail(clientName, ip, method, path string, status int, action, target, detail string) error {
 	if s == nil || s.DB == nil {
 		return nil
 	}
 	_, err := s.DB.Exec(
-		`INSERT INTO audit (client_name, ip, method, path, status) VALUES (?, ?, ?, ?, ?)`,
-		clientName, ip, method, path, status,
+		`INSERT INTO audit (client_name, ip, method, path, status, action, target, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		clientName, ip, method, path, status, action, target, detail,
 	)
 	return err
 }
