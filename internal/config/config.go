@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 )
 
+var defaultAllowedFail2BanJails = []string{"sshd", "apache-auth", "recidive"}
+
 type Client struct {
 	Name       string   `json:"name"`
 	AllowedIPs []string `json:"allowed_ips"`
@@ -14,13 +16,18 @@ type Client struct {
 	Enabled    bool     `json:"enabled"`
 }
 
+type SecurityConfig struct {
+	AllowedFail2BanJails []string `json:"allowed_fail2ban_jails"`
+}
+
 type Config struct {
 	API struct {
 		Bind              string `json:"bind"`
 		AllowInsecureHTTP bool   `json:"allow_insecure_http"`
 	} `json:"api"`
-	Clients []Client `json:"clients"`
-	DBPath  string   `json:"db_path"`
+	Security SecurityConfig `json:"security"`
+	Clients  []Client       `json:"clients"`
+	DBPath   string         `json:"db_path"`
 }
 
 func Default() *Config {
@@ -28,6 +35,7 @@ func Default() *Config {
 	cfg.API.Bind = "0.0.0.0:9870"
 	cfg.DBPath = "/opt/minion/minion.db"
 	cfg.Clients = []Client{}
+	cfg.Security.AllowedFail2BanJails = append([]string{}, defaultAllowedFail2BanJails...)
 	return cfg
 }
 
@@ -99,5 +107,8 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Clients == nil {
 		cfg.Clients = []Client{}
+	}
+	if len(cfg.Security.AllowedFail2BanJails) == 0 {
+		cfg.Security.AllowedFail2BanJails = append([]string{}, defaultAllowedFail2BanJails...)
 	}
 }
