@@ -1,0 +1,40 @@
+# Build artifacts
+/minion
+/bin/
+/dist/
+/build/
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Go
+*.test
+*.out
+coverage.out
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+.graphify.env.local
+*.local
+
+# SQLite runtime files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Generated analysis/cache outputs
+graphify-out/
+.graphify/cache/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
