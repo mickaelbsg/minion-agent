@@ -1,9 +1,6 @@
 package collectors
 
-import (
-	"os/exec"
-	"strings"
-)
+import "strings"
 
 type IPTablesRule struct {
 	Chain  string `json:"chain"`
@@ -16,8 +13,7 @@ type IPTablesRule struct {
 func GetIPTablesRules() ([]IPTablesRule, error) {
 	// The agent is expected to run with the required system privileges via systemd.
 	// Avoid calling sudo here because sudo can block or fail when no TTY/sudoers rule exists.
-	cmd := exec.Command("iptables", "-S")
-	output, err := cmd.Output()
+	output, err := runCommandOutput("iptables", "-S")
 	if err != nil {
 		return nil, err
 	}

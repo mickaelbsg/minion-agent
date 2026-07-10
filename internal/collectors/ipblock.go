@@ -3,7 +3,6 @@ package collectors
 import (
 	"bytes"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -12,7 +11,7 @@ import (
 func IsIPBlocked(ip string) (bool, error) {
 	// The service is expected to run with the required system privileges via systemd.
 	// Do not call sudo from inside the agent runtime.
-	out, err := exec.Command("iptables", "-nL").CombinedOutput()
+	out, err := runCommandCombinedOutput("iptables", "-nL")
 	if err == nil && bytes.Contains(out, []byte(ip)) {
 		return true, nil
 	}

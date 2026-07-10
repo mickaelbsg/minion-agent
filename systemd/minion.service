@@ -7,10 +7,19 @@ Type=simple
 ExecStart=/usr/local/bin/minion --config /etc/minion/config.json
 Restart=on-failure
 RestartSec=5
-# Run as root by default. Do not set User=/Group= here: some minimal systems
-# fail with status=217/USER when resolving explicit service users.
+# Run as root by default because some collectors require privileged system access.
+# Do not set User=/Group= here: some minimal systems fail with status=217/USER
+# when resolving explicit service users.
 Environment=HOME=/root
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/minion /etc/minion
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target

@@ -70,7 +70,7 @@ chmod 755 "$DEB_ROOT/usr/local/bin/minion"
 if [[ -f "config.example.json" ]]; then
   cp "config.example.json" "$DEB_ROOT/etc/minion/config.json"
 else
-  echo "{\"api\": {\"bind\": \"0.0.0.0:9870\", \"allow_insecure_http\": false}, \"db_path\": \"/opt/minion/minion.db\", \"clients\": []}" > "$DEB_ROOT/etc/minion/config.json"
+  echo "{\"api\": {\"bind\": \"0.0.0.0:9870\", \"allow_insecure_http\": false}, \"security\": {\"allowed_fail2ban_jails\": [\"sshd\", \"apache-auth\", \"recidive\"]}, \"db_path\": \"/opt/minion/minion.db\", \"clients\": []}" > "$DEB_ROOT/etc/minion/config.json"
 fi
 chmod 600 "$DEB_ROOT/etc/minion/config.json"
 
@@ -86,10 +86,18 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/minion --config /etc/minion/config.json
-Restart=always
-User=root
-Group=root
+Restart=on-failure
+RestartSec=5
+Environment=HOME=/root
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/minion /etc/minion
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target

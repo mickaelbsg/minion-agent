@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 
 	"minion/internal/collectors"
@@ -136,6 +135,13 @@ func (s *Server) authClients() ([]storage.Client, error) {
 	return clients, nil
 }
 
+func (s *Server) allowedFail2BanJails() []string {
+	if s != nil && s.cfg != nil && len(s.cfg.Security.AllowedFail2BanJails) > 0 {
+		return s.cfg.Security.AllowedFail2BanJails
+	}
+	return []string{"sshd", "apache-auth", "recidive"}
+}
+
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, map[string]string{"status": "ok"})
 }
@@ -189,28 +195,32 @@ func (s *Server) handleFail2BanUnban(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusBadRequest, "invalid json payload")
 		return
 	}
+	payload.IP = strings.TrimSpace(payload.IP)
+	payload.Jail = strings.TrimSpace(payload.Jail)
+	setAuditDetailOnWriter(w, "fail2ban_unban", payload.IP, "jail="+payload.Jail)
 	if net.ParseIP(payload.IP) == nil {
 		s.writeError(w, http.StatusBadRequest, "invalid ip address")
 		return
 	}
-	allowedJails := []string{"sshd", "apache-auth", "recidive"}
 	jailAllowed := false
-	for _, aj := range allowedJails {
+	for _, aj := range s.allowedFail2BanJails() {
 		if payload.Jail == aj {
 			jailAllowed = true
 			break
 		}
 	}
 	if !jailAllowed {
+		setAuditDetailOnWriter(w, "fail2ban_unban", payload.IP, "jail="+payload.Jail+" result=denied")
 		s.writeError(w, http.StatusBadRequest, "jail not allowed")
 		return
 	}
-	cmd := exec.Command("fail2ban-client", "set", payload.Jail, "unbanip", payload.IP)
-	out, err := cmd.CombinedOutput()
+	out, err := collectors.UnbanFail2BanIP(payload.Jail, payload.IP)
 	if err != nil {
+		setAuditDetailOnWriter(w, "fail2ban_unban", payload.IP, "jail="+payload.Jail+" result=error")
 		s.writeError(w, http.StatusInternalServerError, string(out))
 		return
 	}
+	setAuditDetailOnWriter(w, "fail2ban_unban", payload.IP, "jail="+payload.Jail+" result=success")
 	s.writeJSON(w, map[string]string{"status": "unbanned", "ip": payload.IP, "jail": payload.Jail})
 }
 
@@ -288,7 +298,11 @@ func (s *Server) handleSudo(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleJournal(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
-	level := r.URL.Query().Get("level")
+	level := strings.TrimSpace(r.URL.Query().Get("level"))
+	if !collectors.IsValidJournalLevel(level) {
+		s.writeError(w, http.StatusBadRequest, "invalid journal level")
+		return
+	}
 	logs, err := collectors.GetJournalLogs(limit, level)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, err.Error())
