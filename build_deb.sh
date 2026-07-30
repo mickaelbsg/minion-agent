@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PKG_NAME="minion"
-PKG_VER="1.0.0"
+PKG_VER="1.0.1"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
@@ -32,6 +32,35 @@ EOF
 cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOS'
 #!/bin/sh
 set -e
+
+TLS_DIR="/etc/minion/tls"
+TLS_CERT="$TLS_DIR/minion.crt"
+TLS_KEY="$TLS_DIR/minion.key"
+
+mkdir -p "$TLS_DIR"
+chmod 700 "$TLS_DIR"
+
+# Generate a self-signed certificate only when one or both TLS files are
+# missing. Existing certificates are never overwritten during upgrades.
+if [ ! -f "$TLS_CERT" ] || [ ! -f "$TLS_KEY" ]; then
+  HOSTNAME_FQDN="$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo minion.local)"
+
+  echo "Generating self-signed TLS certificate for ${HOSTNAME_FQDN}..."
+  openssl req \
+    -x509 \
+    -newkey rsa:4096 \
+    -sha256 \
+    -nodes \
+    -days 3650 \
+    -keyout "$TLS_KEY" \
+    -out "$TLS_CERT" \
+    -subj "/C=BR/ST=DF/L=Brasilia/O=Minion/OU=Infrastructure/CN=${HOSTNAME_FQDN}"
+fi
+
+chown root:root "$TLS_DIR" "$TLS_CERT" "$TLS_KEY"
+chmod 700 "$TLS_DIR"
+chmod 600 "$TLS_KEY"
+chmod 644 "$TLS_CERT"
 
 # If a legacy/local unit exists in /etc, systemd gives it precedence over the
 # packaged unit in /lib. Keep /etc in sync to avoid stale User=/Group= settings.
