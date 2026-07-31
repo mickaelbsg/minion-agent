@@ -2,6 +2,7 @@ package collectors
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -14,15 +15,23 @@ type User struct {
 	Home     string `json:"home"`
 }
 
-func GetUsers() ([]User, error) {
+func GetUsers() (users []User, err error) {
 	file, err := os.Open("/etc/passwd")
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
 
+	return parseUsers(file)
+}
+
+func parseUsers(reader io.Reader) ([]User, error) {
 	users := []User{}
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
