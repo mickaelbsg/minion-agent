@@ -3,19 +3,21 @@
 set -euo pipefail
 
 PKG_NAME="minion"
-PKG_VER="1.0.1"
+PKG_VER="1.0.2"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
 
+trap 'rm -rf "$BUILD_ROOT"' EXIT
+
 echo "Creating package directory $DEB_ROOT"
 mkdir -p "$DEB_ROOT/DEBIAN"
 mkdir -p "$DEB_ROOT/usr/local/bin"
-mkdir -p "$DEB_ROOT/etc/minion"
 mkdir -p "$DEB_ROOT/etc/minion/tls"
+mkdir -p "$DEB_ROOT/opt/minion"
+mkdir -p "$DEB_ROOT/var/lib/minion"
 mkdir -p "$DEB_ROOT/lib/systemd/system"
 
-# ---- Control file ----
 cat > "$DEB_ROOT/DEBIAN/control" <<EOF
 Package: $PKG_NAME
 Version: $PKG_VER
@@ -24,88 +26,111 @@ Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
 Depends: libc6 (>= 2.28), iptables, fail2ban, openssl, sqlite3
-Description: Minion Agent – lightweight Linux data collector and API server.
- Minion gathers system information, users, services, Fail2Ban bans, and exposes a secure HTTPS API.
+Description: Minion Agent - lightweight Linux observability agent and API server.
+ Minion gathers host information and exposes an authenticated HTTPS API.
 EOF
 
-# ---- postinst ----
+# Preserve the operator's configuration across upgrades.
+echo "/etc/minion/config.json" > "$DEB_ROOT/DEBIAN/conffiles"
+
 cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOS'
 #!/bin/sh
 set -e
 
+CONFIG="/etc/minion/config.json"
+DATA_DIR="/opt/minion"
 TLS_DIR="/etc/minion/tls"
-TLS_CERT="$TLS_DIR/minion.crt"
-TLS_KEY="$TLS_DIR/minion.key"
+STATE_DIR="/var/lib/minion"
+BOOTSTRAP_FILE="$STATE_DIR/bootstrap-credentials.txt"
+BOOTSTRAP_TMP="$STATE_DIR/.bootstrap-credentials.tmp"
 
-mkdir -p "$TLS_DIR"
-chmod 700 "$TLS_DIR"
-
-# Generate a self-signed certificate only when one or both TLS files are
-# missing. Existing certificates are never overwritten during upgrades.
-if [ ! -f "$TLS_CERT" ] || [ ! -f "$TLS_KEY" ]; then
-  HOSTNAME_FQDN="$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo minion.local)"
-
-  echo "Generating self-signed TLS certificate for ${HOSTNAME_FQDN}..."
-  openssl req \
-    -x509 \
-    -newkey rsa:4096 \
-    -sha256 \
-    -nodes \
-    -days 3650 \
-    -keyout "$TLS_KEY" \
-    -out "$TLS_CERT" \
-    -subj "/C=BR/ST=DF/L=Brasilia/O=Minion/OU=Infrastructure/CN=${HOSTNAME_FQDN}"
-fi
-
-chown root:root "$TLS_DIR" "$TLS_CERT" "$TLS_KEY"
-chmod 700 "$TLS_DIR"
-chmod 600 "$TLS_KEY"
-chmod 644 "$TLS_CERT"
-
-# If a legacy/local unit exists in /etc, systemd gives it precedence over the
-# packaged unit in /lib. Keep /etc in sync to avoid stale User=/Group= settings.
-if [ -f /lib/systemd/system/minion.service ]; then
-  cp /lib/systemd/system/minion.service /etc/systemd/system/minion.service
-fi
+install -d -o root -g root -m 700 /etc/minion "$TLS_DIR" "$DATA_DIR" "$STATE_DIR"
+chmod 600 "$CONFIG"
 
 systemctl daemon-reload
-systemctl reset-failed minion.service || true
-systemctl enable minion.service
+systemctl reset-failed minion.service >/dev/null 2>&1 || true
+
+# The setup command is idempotent: it creates TLS, SQLite and the first client
+# only when they do not already exist. Output is captured in a root-only file
+# instead of being written to the system journal.
+umask 077
+if /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0.1/32 >"$BOOTSTRAP_TMP" 2>&1; then
+  if grep -q '^API Key:' "$BOOTSTRAP_TMP"; then
+    mv -f "$BOOTSTRAP_TMP" "$BOOTSTRAP_FILE"
+    chmod 600 "$BOOTSTRAP_FILE"
+    echo "Minion bootstrap credential created at $BOOTSTRAP_FILE (root only)."
+  else
+    rm -f "$BOOTSTRAP_TMP"
+  fi
+else
+  cat "$BOOTSTRAP_TMP" >&2
+  rm -f "$BOOTSTRAP_TMP"
+  echo "Minion bootstrap failed; package configuration was not completed." >&2
+  exit 1
+fi
+
+chmod 700 /etc/minion "$TLS_DIR" "$DATA_DIR" "$STATE_DIR"
+[ ! -f "$TLS_DIR/minion.key" ] || chmod 600 "$TLS_DIR/minion.key"
+[ ! -f "$TLS_DIR/minion.crt" ] || chmod 644 "$TLS_DIR/minion.crt"
+[ ! -f "$DATA_DIR/minion.db" ] || chmod 600 "$DATA_DIR/minion.db"
+
+systemctl enable minion.service >/dev/null
 systemctl restart minion.service
+
+if ! systemctl is-active --quiet minion.service; then
+  echo "Minion service failed to start. Run: journalctl -u minion.service -n 100" >&2
+  exit 1
+fi
+
+echo "Minion installed and running."
+echo "Status: systemctl status minion.service"
+echo "Health: https://127.0.0.1:9870/api/v1/health"
 exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/postinst"
 
-# ---- prerm ----
 cat > "$DEB_ROOT/DEBIAN/prerm" <<'EOS'
 #!/bin/sh
 set -e
-# Stop and disable the service before removal
-systemctl stop minion.service || true
-systemctl disable minion.service || true
+
+# Stop the service during removal or upgrade. Configuration, TLS, database and
+# bootstrap material are intentionally preserved; purge handling will be added
+# only with an explicit data-destruction policy.
+systemctl stop minion.service >/dev/null 2>&1 || true
+if [ "$1" = "remove" ]; then
+  systemctl disable minion.service >/dev/null 2>&1 || true
+fi
 exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 
-# ---- Binary ----
 if [[ ! -f "$(pwd)/minion" ]]; then
   echo "Compiling minion binary..."
   go build -o minion ./cmd/minion
 fi
-cp "$(pwd)/minion" "$DEB_ROOT/usr/local/bin/minion"
-chmod 755 "$DEB_ROOT/usr/local/bin/minion"
+install -m 755 "$(pwd)/minion" "$DEB_ROOT/usr/local/bin/minion"
 
-# ---- Config ----
 if [[ -f "config.example.json" ]]; then
-  cp "config.example.json" "$DEB_ROOT/etc/minion/config.json"
+  install -m 600 config.example.json "$DEB_ROOT/etc/minion/config.json"
 else
-  echo "{\"api\": {\"bind\": \"0.0.0.0:9870\", \"allow_insecure_http\": false}, \"security\": {\"allowed_fail2ban_jails\": [\"sshd\", \"apache-auth\", \"recidive\"]}, \"db_path\": \"/opt/minion/minion.db\", \"clients\": []}" > "$DEB_ROOT/etc/minion/config.json"
+  cat > "$DEB_ROOT/etc/minion/config.json" <<'EOS'
+{
+  "api": {
+    "bind": "0.0.0.0:9870",
+    "allow_insecure_http": false
+  },
+  "security": {
+    "allowed_fail2ban_jails": ["sshd", "apache-auth", "recidive"]
+  },
+  "db_path": "/opt/minion/minion.db",
+  "clients": []
+}
+EOS
+  chmod 600 "$DEB_ROOT/etc/minion/config.json"
 fi
-chmod 600 "$DEB_ROOT/etc/minion/config.json"
 
-# ---- systemd service ----
 if [[ -f "systemd/minion.service" ]]; then
-  cp "systemd/minion.service" "$DEB_ROOT/lib/systemd/system/minion.service"
+  install -m 644 systemd/minion.service "$DEB_ROOT/lib/systemd/system/minion.service"
 else
   cat > "$DEB_ROOT/lib/systemd/system/minion.service" <<'EOS'
 [Unit]
@@ -134,9 +159,8 @@ EOS
 fi
 chmod 644 "$DEB_ROOT/lib/systemd/system/minion.service"
 
-# Build the .deb package
-dpkg-deb --build "$DEB_ROOT" "${PKG_NAME}_${PKG_VER}_${ARCH}.deb"
-echo "Package built: ${PKG_NAME}_${PKG_VER}_${ARCH}.deb"
+# Ensure expected package permissions before building.
+chmod 700 "$DEB_ROOT/etc/minion" "$DEB_ROOT/etc/minion/tls" "$DEB_ROOT/opt/minion" "$DEB_ROOT/var/lib/minion"
 
-# Clean up
-rm -rf "$BUILD_ROOT"
+dpkg-deb --root-owner-group --build "$DEB_ROOT" "${PKG_NAME}_${PKG_VER}_${ARCH}.deb"
+echo "Package built: ${PKG_NAME}_${PKG_VER}_${ARCH}.deb"
