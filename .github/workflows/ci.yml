@@ -24,3 +24,30 @@ jobs:
 
       - name: Build
         run: go build ./cmd/minion
+
+      - name: Build Debian package
+        run: ./build_deb.sh
+
+      - name: Validate Debian package
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$(find . -maxdepth 1 -name 'minion_*_amd64.deb' -print -quit)"
+          test -n "$package"
+          dpkg-deb --info "$package"
+          dpkg-deb --contents "$package"
+
+          root="$(mktemp -d)"
+          control="$(mktemp -d)"
+          dpkg-deb --extract "$package" "$root"
+          dpkg-deb --control "$package" "$control"
+
+          test -x "$root/usr/local/bin/minion"
+          test -f "$root/lib/systemd/system/minion.service"
+          test -f "$root/etc/minion/config.json"
+          test -x "$control/postinst"
+          test -x "$control/prerm"
+          grep -qx '/etc/minion/config.json' "$control/conffiles"
+          grep -q 'minion setup' "$control/postinst"
+          grep -q 'systemctl is-active --quiet minion.service' "$control/postinst"
+          grep -q '/var/lib/minion/bootstrap-credentials.txt' "$control/postinst"
