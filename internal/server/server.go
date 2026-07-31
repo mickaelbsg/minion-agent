@@ -30,6 +30,7 @@ func (s *Server) Start() error {
 
 	mux.HandleFunc("/api/v1/health", s.audit(s.handleHealth))
 	mux.HandleFunc("/api/v1/agent", s.audit(s.auth(s.handleAgent)))
+	mux.HandleFunc("/api/v1/heartbeat", s.audit(s.auth(s.handleHeartbeat)))
 	mux.HandleFunc("/api/v1/system", s.audit(s.auth(s.handleSystem)))
 	mux.HandleFunc("/api/v1/users", s.audit(s.auth(s.handleUsers)))
 	mux.HandleFunc("/api/v1/services", s.audit(s.auth(s.handleServices)))

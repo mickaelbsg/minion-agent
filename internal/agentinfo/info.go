@@ -99,6 +99,7 @@ func readUptime() float64 {
 func capabilities() []string {
 	items := []string{
 		"agent.read",
+		"agent.heartbeat.read",
 		"disk.read",
 		"fail2ban.read",
 		"fail2ban.unban",
