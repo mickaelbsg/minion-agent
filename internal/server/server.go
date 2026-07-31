@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"minion/internal/agentinfo"
 	"minion/internal/collectors"
 	"minion/internal/config"
 	"minion/internal/security"
@@ -28,6 +29,7 @@ func (s *Server) Start() error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/v1/health", s.audit(s.handleHealth))
+	mux.HandleFunc("/api/v1/agent", s.audit(s.auth(s.handleAgent)))
 	mux.HandleFunc("/api/v1/system", s.audit(s.auth(s.handleSystem)))
 	mux.HandleFunc("/api/v1/users", s.audit(s.auth(s.handleUsers)))
 	mux.HandleFunc("/api/v1/services", s.audit(s.auth(s.handleServices)))
@@ -144,6 +146,14 @@ func (s *Server) allowedFail2BanJails() []string {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleAgent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	s.writeJSON(w, agentinfo.Get())
 }
 
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
