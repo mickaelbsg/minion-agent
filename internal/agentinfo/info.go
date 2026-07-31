@@ -16,14 +16,14 @@ const unknownValue = "unknown"
 
 // Info describes the local Minion instance and the capabilities exposed by it.
 type Info struct {
-	AgentID     string   `json:"agent_id"`
-	Hostname    string   `json:"hostname"`
-	Version     string   `json:"version"`
-	OS          string   `json:"os"`
-	Architecture string   `json:"architecture"`
-	UptimeSeconds float64 `json:"uptime_seconds"`
-	ObservedAt  string   `json:"observed_at"`
-	Capabilities []string `json:"capabilities"`
+	AgentID       string   `json:"agent_id"`
+	Hostname      string   `json:"hostname"`
+	Version       string   `json:"version"`
+	OS            string   `json:"os"`
+	Architecture  string   `json:"architecture"`
+	UptimeSeconds float64  `json:"uptime_seconds"`
+	ObservedAt    string   `json:"observed_at"`
+	Capabilities  []string `json:"capabilities"`
 }
 
 // Get returns metadata that a control plane can use to identify and inspect this Minion.
