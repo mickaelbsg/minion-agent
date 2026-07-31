@@ -185,7 +185,7 @@ func (s *Service) InspectStatus() (Status, error) {
 	return status, nil
 }
 
-func (s *Service) Setup(opts SetupOptions) (SetupResult, error) {
+func (s *Service) Setup(opts SetupOptions) (result SetupResult, resultErr error) {
 	if !s.IsRoot() {
 		return SetupResult{}, fmt.Errorf("setup requires root privileges")
 	}
@@ -200,7 +200,7 @@ func (s *Service) Setup(opts SetupOptions) (SetupResult, error) {
 		return SetupResult{}, err
 	}
 
-	result := SetupResult{
+	result = SetupResult{
 		ConfigPath:  s.ConfigPath,
 		TLSCertPath: filepath.Join(s.TLSDir, "minion.crt"),
 		TLSKeyPath:  filepath.Join(s.TLSDir, "minion.key"),
@@ -237,7 +237,7 @@ func (s *Service) Setup(opts SetupOptions) (SetupResult, error) {
 	if err != nil {
 		return SetupResult{}, fmt.Errorf("failed to initialise storage: %w", err)
 	}
-	defer stor.DB.Close()
+	defer closeWithError(stor.DB, &resultErr)
 
 	if err := os.Chmod(cfg.DBPath, 0o600); err != nil {
 		return SetupResult{}, fmt.Errorf("failed to set database permissions: %w", err)
@@ -270,16 +270,16 @@ func (s *Service) Setup(opts SetupOptions) (SetupResult, error) {
 	return result, nil
 }
 
-func (s *Service) ListClients() ([]storage.Client, error) {
+func (s *Service) ListClients() (clients []storage.Client, resultErr error) {
 	stor, err := s.openStorage()
 	if err != nil {
 		return nil, err
 	}
-	defer stor.DB.Close()
+	defer closeWithError(stor.DB, &resultErr)
 	return stor.GetClients()
 }
 
-func (s *Service) CreateClient(name, ips string) (CreatedClient, error) {
+func (s *Service) CreateClient(name, ips string) (created CreatedClient, resultErr error) {
 	if !s.IsRoot() {
 		return CreatedClient{}, fmt.Errorf("root privileges required to manage clients")
 	}
@@ -294,7 +294,7 @@ func (s *Service) CreateClient(name, ips string) (CreatedClient, error) {
 	if err != nil {
 		return CreatedClient{}, err
 	}
-	defer stor.DB.Close()
+	defer closeWithError(stor.DB, &resultErr)
 
 	key, err := security.GenerateAPIKey()
 	if err != nil {
@@ -305,15 +305,16 @@ func (s *Service) CreateClient(name, ips string) (CreatedClient, error) {
 		return CreatedClient{}, err
 	}
 
-	return CreatedClient{
+	created = CreatedClient{
 		Name:       name,
 		AllowedIPs: ips,
 		APIKey:     key,
 		APIKeyHash: hash,
-	}, nil
+	}
+	return created, nil
 }
 
-func (s *Service) SetClientEnabled(name string, enabled bool) error {
+func (s *Service) SetClientEnabled(name string, enabled bool) (resultErr error) {
 	if !s.IsRoot() {
 		return fmt.Errorf("root privileges required to manage clients")
 	}
@@ -325,12 +326,12 @@ func (s *Service) SetClientEnabled(name string, enabled bool) error {
 	if err != nil {
 		return err
 	}
-	defer stor.DB.Close()
+	defer closeWithError(stor.DB, &resultErr)
 
 	return stor.UpdateClientStatus(name, enabled)
 }
 
-func (s *Service) DeleteClient(name string) error {
+func (s *Service) DeleteClient(name string) (resultErr error) {
 	if !s.IsRoot() {
 		return fmt.Errorf("root privileges required to manage clients")
 	}
@@ -342,7 +343,7 @@ func (s *Service) DeleteClient(name string) error {
 	if err != nil {
 		return err
 	}
-	defer stor.DB.Close()
+	defer closeWithError(stor.DB, &resultErr)
 
 	return stor.DeleteClient(name)
 }
