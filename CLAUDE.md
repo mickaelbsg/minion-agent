@@ -23,6 +23,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CI runs `golangci-lint run`, `go test ./... -v`, and `go build ./cmd/minion`.
 
+## Mandatory Product Direction
+
+Read and follow `AGENTS.md` before changing the project. Its product, packaging, authentication, security, usability, and maintenance rules are mandatory.
+
+The Minion is the local hand inside Linux servers. Automation/n8n is the control plane; Minion is the local observability and controlled-execution agent.
+
+The product must be easy to sell and easy for a customer to operate. The default installation target is a single command:
+
+```bash
+sudo dpkg -i minion-agent_<version>_amd64.deb
+```
+
+After this command, the agent must be installed, securely configured, running, and ready to connect to Automation without requiring compilation, manual file copying, a separate `minion setup`, or manual JSON editing.
+
+Current priority order is mandatory:
+
+1. complete Debian package installation experience;
+2. authentication and client lifecycle;
+3. operational security;
+4. complete observability;
+5. advanced Automation/n8n integration;
+6. controlled administrative actions.
+
+Do not prioritize unrelated features while the official `dpkg -i` flow remains incomplete.
+
+Every maintenance cycle must produce perceptible product value. Do not spend an entire cycle only on formatting, lint, Dependabot, cosmetic refactors, or isolated documentation unless a concrete security or implementation blocker requires it.
+
+Before implementing anything, ask:
+
+> Does this make Minion easier to install, safer, or more useful for the customer?
+
+If the answer is unclear, it is not the current priority.
+
 ## High-Level Architecture
 
 Minion is a Go Linux agent installed as a `systemd` service. It replaces recurring privileged SSH collection with a local authenticated HTTP API. It is not a remote shell, does not accept free-form commands, and does not embed AI or decision logic.
@@ -80,7 +113,11 @@ Use these paths rather than hand-editing config JSON or stored client rows where
 
 ## Packaging / Installation
 
-`build_deb.sh`, `install.sh`, and `install_minion.sh` handle local install/package workflows. The service is intended to run with enough host privileges for collectors such as Fail2Ban, iptables, journal, and systemd service inspection.
+The `.deb` package is the official product installation path. `build_deb.sh`, `install.sh`, and `install_minion.sh` currently support package or development workflows, but manual scripts must not remain competing customer installation paths.
+
+The final package must preserve configuration, database, TLS assets, identity, and credentials during reinstall or upgrade. It must bootstrap securely, start and validate the service, and provide clear next steps without exposing secrets in logs.
+
+The service is intended to run with enough host privileges for collectors such as Fail2Ban, iptables, journal, and systemd service inspection. Security hardening must remain compatible with those capabilities.
 
 ## Maintenance Notes
 
@@ -90,6 +127,7 @@ Use these paths rather than hand-editing config JSON or stored client rows where
 
 ## Reference Documents
 
+- `AGENTS.md` – mandatory product, usability, packaging, security, and maintenance rules for all agents.
 - `README.md` – user-facing overview, install/config/API notes, and security constraints.
 - `SPEC.md` – functional specification and API/security model.
 - `ADR.md` – architecture decisions, including avoiding direct SSH/free-command execution in favor of an authenticated local API.
