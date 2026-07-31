@@ -1,8 +1,15 @@
+version: "2"
+
 run:
   tests: true
+
 linters:
+  default: none
   enable:
     - govet
     - staticcheck
+
+formatters:
+  enable:
     - gofmt
     - goimports
