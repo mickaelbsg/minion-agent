@@ -36,12 +36,12 @@ func TestCapabilitiesAreSortedAndContainCoreObservability(t *testing.T) {
 	}
 
 	required := map[string]bool{
-		"agent.read":              false,
-		"users.read":              false,
-		"journal.read":            false,
+		"agent.read":             false,
+		"users.read":             false,
+		"journal.read":           false,
 		"firewall.iptables.read": false,
-		"fail2ban.read":           false,
-		"fail2ban.unban":          false,
+		"fail2ban.read":          false,
+		"fail2ban.unban":         false,
 	}
 	for _, capability := range got {
 		if _, ok := required[capability]; ok {
