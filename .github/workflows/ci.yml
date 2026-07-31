@@ -50,4 +50,5 @@ jobs:
           grep -qx '/etc/minion/config.json' "$control/conffiles"
           grep -q 'minion setup' "$control/postinst"
           grep -q 'systemctl is-active --quiet minion.service' "$control/postinst"
-          grep -q '/var/lib/minion/bootstrap-credentials.txt' "$control/postinst"
+          grep -q 'STATE_DIR="/var/lib/minion"' "$control/postinst"
+          grep -q 'bootstrap-credentials.txt' "$control/postinst"
