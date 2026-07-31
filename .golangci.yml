@@ -4,6 +4,7 @@ run:
   tests: true
 
 linters:
+  default: none
   enable:
     - govet
     - staticcheck
