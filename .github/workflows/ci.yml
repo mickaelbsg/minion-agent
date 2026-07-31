@@ -32,8 +32,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          package="$(find . -maxdepth 1 -name 'minion_*_amd64.deb' -print -quit)"
-          test -n "$package"
+          package="./minion_1.0.2_amd64.deb"
+          test -f "$package"
           dpkg-deb --info "$package"
           dpkg-deb --contents "$package"
 
