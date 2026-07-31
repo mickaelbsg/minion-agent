@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,12 +34,19 @@ func New(path string) (*Storage, error) {
 		return nil, err
 	}
 	if _, err := db.Exec(`PRAGMA journal_mode = WAL;`); err != nil {
-		return nil, fmt.Errorf("failed to set journal mode: %w", err)
+		return nil, closeDBOnError(db, fmt.Errorf("failed to set journal mode: %w", err))
 	}
 	if err := initSchema(db); err != nil {
-		return nil, err
+		return nil, closeDBOnError(db, fmt.Errorf("failed to initialize schema: %w", err))
 	}
 	return &Storage{DB: db}, nil
+}
+
+func closeDBOnError(db *sql.DB, initErr error) error {
+	if closeErr := db.Close(); closeErr != nil {
+		return errors.Join(initErr, fmt.Errorf("failed to close database after initialization error: %w", closeErr))
+	}
+	return initErr
 }
 
 func initSchema(db *sql.DB) error {
@@ -115,14 +123,17 @@ func (s *Storage) InsertAuditDetail(clientName, ip, method, path string, status 
 	return err
 }
 
-func (s *Storage) GetClients() ([]Client, error) {
+func (s *Storage) GetClients() (clients []Client, err error) {
 	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled FROM clients")
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("failed to close client rows: %w", closeErr))
+		}
+	}()
 
-	var clients []Client
 	for rows.Next() {
 		var c Client
 		var ips string
@@ -131,6 +142,9 @@ func (s *Storage) GetClients() ([]Client, error) {
 		}
 		c.AllowedIPs = strings.Split(ips, ",")
 		clients = append(clients, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed while iterating clients: %w", err)
 	}
 	return clients, nil
 }
