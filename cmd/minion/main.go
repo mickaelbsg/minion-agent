@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"minion/internal/admin"
+	"minion/internal/bootstrap"
 	"minion/internal/config"
 	"minion/internal/server"
 	"minion/internal/storage"
@@ -21,15 +23,12 @@ func main() {
 	clientIPs := fs.String("ips", "", "Comma separated list of allowed IPs/CIDRs")
 	uiSection := fs.String("section", "", "UI section: setup, config, clients, status")
 
-	// Lógica para permitir flags em qualquer lugar:
-	// Coletamos todos os argumentos e separamos subcomandos de flags
 	var subcommands []string
 	var flagsOnly []string
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		if strings.HasPrefix(arg, "-") {
 			flagsOnly = append(flagsOnly, arg)
-			// Se a flag tem um valor (não é booleana), pegamos o próximo também
 			if !strings.Contains(arg, "=") && i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
 				flagsOnly = append(flagsOnly, os.Args[i+1])
 				i++
@@ -39,14 +38,15 @@ func main() {
 		}
 	}
 
-	// Parseamos apenas as flags coletadas
 	_ = fs.Parse(flagsOnly)
 
-	// Se houver subcomandos
 	if len(subcommands) > 0 {
 		switch subcommands[0] {
 		case "setup":
 			setup(*configPath, *clientName, *clientIPs)
+			return
+		case "bootstrap":
+			handleBootstrapCommands(subcommands[1:])
 			return
 		case "ui":
 			if err := ui.Run(*configPath, *uiSection); err != nil {
@@ -73,7 +73,6 @@ func main() {
 		return
 	}
 
-	// Default: Start server
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -88,6 +87,24 @@ func main() {
 	if err := srv.Start(); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
+}
+
+func handleBootstrapCommands(args []string) {
+	if len(args) != 1 || args[0] != "show" {
+		fmt.Println("Usage: sudo minion bootstrap show")
+		return
+	}
+
+	err := bootstrap.Consume(bootstrap.DefaultCredentialsPath, os.Stdout, func() bool {
+		return os.Geteuid() == 0
+	})
+	if errors.Is(err, bootstrap.ErrAlreadyConsumed) {
+		log.Fatal("bootstrap credentials are unavailable or were already consumed; create a new client with `sudo minion client create --name <name> --ips <ip/cidr>`")
+	}
+	if err != nil {
+		log.Fatalf("failed to show bootstrap credentials: %v", err)
+	}
+	fmt.Println("Bootstrap credentials consumed and removed from disk. Store the API key in the Automation credential store now.")
 }
 
 func setup(configPath, clientName, clientIPs string) {
