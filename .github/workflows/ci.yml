@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          package="./minion_1.0.2_amd64.deb"
+          package="./minion_1.0.3_amd64.deb"
           test -f "$package"
           dpkg-deb --info "$package"
           dpkg-deb --contents "$package"
@@ -52,3 +52,5 @@ jobs:
           grep -q 'systemctl is-active --quiet minion.service' "$control/postinst"
           grep -q 'STATE_DIR="/var/lib/minion"' "$control/postinst"
           grep -q 'bootstrap-credentials.txt' "$control/postinst"
+          grep -q 'sudo minion bootstrap show' "$control/postinst"
+          strings "$root/usr/local/bin/minion" | grep -q 'bootstrap credentials consumed'
