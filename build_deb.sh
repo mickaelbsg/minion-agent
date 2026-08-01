@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PKG_NAME="minion"
-PKG_VER="1.0.3"
+PKG_VER="1.0.4"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
@@ -30,7 +30,6 @@ Description: Minion Agent - lightweight Linux observability agent and API server
  Minion gathers host information and exposes an authenticated HTTPS API.
 EOF
 
-# Preserve the operator's configuration across upgrades.
 echo "/etc/minion/config.json" > "$DEB_ROOT/DEBIAN/conffiles"
 
 cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOS'
@@ -50,9 +49,6 @@ chmod 600 "$CONFIG"
 systemctl daemon-reload
 systemctl reset-failed minion.service >/dev/null 2>&1 || true
 
-# The setup command is idempotent: it creates TLS, SQLite and the first client
-# only when they do not already exist. Output is captured in a root-only file
-# instead of being written to the system journal.
 umask 077
 if /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0.1/32 >"$BOOTSTRAP_TMP" 2>&1; then
   if grep -q '^API Key:' "$BOOTSTRAP_TMP"; then
@@ -86,7 +82,7 @@ echo "Minion installed and running."
 echo "Status: systemctl status minion.service"
 echo "Health: https://127.0.0.1:9870/api/v1/health"
 if [ -f "$BOOTSTRAP_FILE" ]; then
-  echo "Next step: run 'sudo minion bootstrap show' to display the initial API key once."
+  echo "Next step: run 'sudo minion bootstrap pair --ips <AUTOMATION_IP/32>' to authorize Automation and display the initial API key once."
 fi
 exit 0
 EOS
@@ -95,10 +91,6 @@ chmod 755 "$DEB_ROOT/DEBIAN/postinst"
 cat > "$DEB_ROOT/DEBIAN/prerm" <<'EOS'
 #!/bin/sh
 set -e
-
-# Stop the service during removal or upgrade. Configuration, TLS, database and
-# bootstrap material are intentionally preserved; purge handling will be added
-# only with an explicit data-destruction policy.
 systemctl stop minion.service >/dev/null 2>&1 || true
 if [ "$1" = "remove" ]; then
   systemctl disable minion.service >/dev/null 2>&1 || true
@@ -161,8 +153,6 @@ WantedBy=multi-user.target
 EOS
 fi
 chmod 644 "$DEB_ROOT/lib/systemd/system/minion.service"
-
-# Ensure expected package permissions before building.
 chmod 700 "$DEB_ROOT/etc/minion" "$DEB_ROOT/etc/minion/tls" "$DEB_ROOT/opt/minion" "$DEB_ROOT/var/lib/minion"
 
 dpkg-deb --root-owner-group --build "$DEB_ROOT" "${PKG_NAME}_${PKG_VER}_${ARCH}.deb"
