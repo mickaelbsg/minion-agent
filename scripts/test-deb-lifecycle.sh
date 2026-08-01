@@ -18,7 +18,7 @@ assert_mode() {
   local path="$1"
   local expected="$2"
   local actual
-  actual="$(stat -c '%a' "$path")"
+  actual="$(sudo stat -c '%a' "$path")"
   [[ "$actual" == "$expected" ]] || fail "$path mode is $actual, expected $expected"
 }
 
