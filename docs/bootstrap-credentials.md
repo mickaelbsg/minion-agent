@@ -3,23 +3,32 @@
 Depois da instalação do pacote:
 
 ```bash
-sudo dpkg -i minion_1.0.3_amd64.deb
+sudo dpkg -i minion_1.0.4_amd64.deb
 ```
 
-O Minion cria automaticamente o primeiro cliente local, inicializa TLS e SQLite e inicia o serviço. Para visualizar a API key inicial, execute:
+O Minion cria automaticamente o primeiro cliente, inicializa TLS e SQLite e inicia o serviço. Para autorizar o Automation/n8n remoto e visualizar a API key em uma única operação, execute:
+
+```bash
+sudo minion bootstrap pair --ips 192.0.2.10/32
+```
+
+Substitua o endereço de exemplo pelo IP ou CIDR real do Automation. O comando mantém o bootstrap restrito a localhost até o pareamento, valida o destino informado, atualiza a allowlist e mostra a credencial uma única vez.
+
+A operação:
+
+- exige root;
+- aceita somente IP ou CIDR válido;
+- recusa symlinks e arquivos de credencial com permissões inseguras;
+- não abre acesso para `0.0.0.0/0` automaticamente;
+- preserva a credencial se a atualização da allowlist falhar;
+- remove o arquivo somente depois de exibir a credencial com sucesso;
+- não registra a API key no journal.
+
+Para uso exclusivamente local, o comando anterior continua disponível:
 
 ```bash
 sudo minion bootstrap show
 ```
-
-O comando:
-
-- exige root;
-- recusa symlinks e arquivos com permissões inseguras;
-- mostra a credencial somente uma vez;
-- remove o arquivo de credencial após a exibição bem-sucedida;
-- preserva o arquivo caso a saída falhe;
-- não registra a API key no journal.
 
 Armazene a API key imediatamente no cofre de credenciais do Automation/n8n. Não salve a chave em workflows, Code nodes, logs, tickets ou documentação.
 
@@ -29,7 +38,7 @@ Se a credencial já tiver sido consumida, crie um cliente novo explicitamente:
 sudo minion client create --name automation --ips 192.0.2.10/32
 ```
 
-Substitua o endereço de exemplo pelo IP ou CIDR real do plano de controle. A chave gerada é exibida uma única vez; somente o hash Argon2id permanece no Minion.
+A chave gerada é exibida uma única vez; somente o hash Argon2id permanece no Minion.
 
 ## Upgrade e reinstalação
 
