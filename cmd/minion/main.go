@@ -32,7 +32,6 @@ func main() {
 			if !strings.Contains(arg, "=") && i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
 				flagsOnly = append(flagsOnly, os.Args[i+1])
 				i++
-			}
 		} else {
 			subcommands = append(subcommands, arg)
 		}
@@ -46,7 +45,7 @@ func main() {
 			setup(*configPath, *clientName, *clientIPs)
 			return
 		case "bootstrap":
-			handleBootstrapCommands(subcommands[1:])
+			handleBootstrapCommands(subcommands[1:], *configPath, *clientIPs)
 			return
 		case "ui":
 			if err := ui.Run(*configPath, *uiSection); err != nil {
@@ -77,51 +76,70 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
-
 	stor, err := storage.New(cfg.DBPath)
 	if err != nil {
 		log.Fatalf("failed to initialise storage: %v", err)
 	}
-
 	srv := server.New(cfg, stor)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }
 
-func handleBootstrapCommands(args []string) {
-	if len(args) != 1 || args[0] != "show" {
-		fmt.Println("Usage: sudo minion bootstrap show")
+func handleBootstrapCommands(args []string, configPath, ips string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: sudo minion bootstrap show | sudo minion bootstrap pair --ips <ip/cidr>")
 		return
 	}
 
-	err := bootstrap.Consume(bootstrap.DefaultCredentialsPath, os.Stdout, func() bool {
-		return os.Geteuid() == 0
-	})
-	if errors.Is(err, bootstrap.ErrAlreadyConsumed) {
-		log.Fatal("bootstrap credentials are unavailable or were already consumed; create a new client with `sudo minion client create --name <name> --ips <ip/cidr>`")
+	switch args[0] {
+	case "show":
+		err := bootstrap.Consume(bootstrap.DefaultCredentialsPath, os.Stdout, isRoot)
+		if errors.Is(err, bootstrap.ErrAlreadyConsumed) {
+			log.Fatal("bootstrap credentials are unavailable or were already consumed; create a new client with `sudo minion client create --name <name> --ips <ip/cidr>`")
+		}
+		if err != nil {
+			log.Fatalf("failed to show bootstrap credentials: %v", err)
+		}
+		fmt.Println("Bootstrap credentials consumed and removed from disk. Store the API key in the Automation credential store now.")
+	case "pair":
+		if strings.TrimSpace(ips) == "" {
+			log.Fatal("--ips is required. Example: sudo minion bootstrap pair --ips 192.0.2.10/32")
+		}
+		payload, err := bootstrap.Read(bootstrap.DefaultCredentialsPath, isRoot)
+		if errors.Is(err, bootstrap.ErrAlreadyConsumed) {
+			log.Fatal("bootstrap credentials are unavailable or were already consumed; create a new client with `sudo minion client create --name automation --ips <ip/cidr>`")
+		}
+		if err != nil {
+			log.Fatalf("failed to read bootstrap credentials: %v", err)
+		}
+		service := admin.NewService(configPath)
+		if err := service.PairBootstrap(ips); err != nil {
+			log.Fatalf("failed to pair bootstrap client: %v", err)
+		}
+		if _, err := os.Stdout.Write(payload); err != nil {
+			log.Fatalf("bootstrap client was paired, but credentials could not be displayed; the credential file was preserved: %v", err)
+		}
+		if err := bootstrap.Remove(bootstrap.DefaultCredentialsPath); err != nil {
+			log.Fatalf("bootstrap client was paired and credentials displayed, but the credential file could not be removed: %v", err)
+		}
+		fmt.Printf("Bootstrap paired for %s. Store the API key in the Automation credential store now.\n", ips)
+	default:
+		fmt.Println("Usage: sudo minion bootstrap show | sudo minion bootstrap pair --ips <ip/cidr>")
 	}
-	if err != nil {
-		log.Fatalf("failed to show bootstrap credentials: %v", err)
-	}
-	fmt.Println("Bootstrap credentials consumed and removed from disk. Store the API key in the Automation credential store now.")
 }
+
+func isRoot() bool { return os.Geteuid() == 0 }
 
 func setup(configPath, clientName, clientIPs string) {
 	service := admin.NewService(configPath)
-	result, err := service.Setup(admin.SetupOptions{
-		ClientName: clientName,
-		ClientIPs:  clientIPs,
-	})
+	result, err := service.Setup(admin.SetupOptions{ClientName: clientName, ClientIPs: clientIPs})
 	if err != nil {
 		log.Fatalf("setup failed: %v", err)
 	}
-
 	fmt.Println("\nMinion setup completed.")
 	if result.BootstrapCreated {
-		fmt.Printf("Bootstrap client: %s\n", result.ClientName)
-		fmt.Printf("Allowed IPs: %s\n", result.ClientIPs)
-		fmt.Printf("API Key: %s\n", result.APIKey)
+		fmt.Printf("Bootstrap client: %s\nAllowed IPs: %s\nAPI Key: %s\n", result.ClientName, result.ClientIPs, result.APIKey)
 		fmt.Println("\nStore this API key now. It is shown only once and only its hash is stored.")
 	} else {
 		fmt.Println("Existing API clients found. No new bootstrap API key was generated.")
@@ -130,13 +148,10 @@ func setup(configPath, clientName, clientIPs string) {
 
 func handleClientCommands(args []string, configPath, name, ips string) {
 	service := admin.NewService(configPath)
-	cmd := ""
+	cmd := "create"
 	if len(args) > 0 {
 		cmd = args[0]
-	} else {
-		cmd = "create"
 	}
-
 	switch cmd {
 	case "create":
 		if name == "" || ips == "" {
