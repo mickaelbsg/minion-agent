@@ -6,7 +6,6 @@ import (
 	"minion/internal/config"
 	"minion/internal/server"
 	"minion/internal/storage"
-	"minion/internal/ui"
 	"os"
 	"strings"
 )
@@ -51,13 +50,7 @@ func run() {
 		log.Fatalf("failed to initialise storage: %v", err)
 	}
 	srv := server.New(cfg, stor)
-	if err := srv.Start(); err != nil {
+	if err = srv.Start(); err != nil {
 		log.Fatalf("server error: %v", err)
-	}
-}
-
-func runUI(configPath, section string) {
-	if err := ui.Run(configPath, section); err != nil {
-		log.Fatalf("failed to start UI: %v", err)
 	}
 }
