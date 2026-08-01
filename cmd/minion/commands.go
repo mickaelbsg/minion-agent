@@ -115,13 +115,22 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		if err != nil {
 			log.Fatalf("failed to list clients: %v", err)
 		}
-		fmt.Printf("%-20s %-30s %-10s %-25s\n", "NAME", "ALLOWED IPS", "ENABLED", "EXPIRES AT")
+		fmt.Printf("%-20s %-30s %-10s %-25s %-25s\n", "NAME", "ALLOWED IPS", "STATUS", "EXPIRES AT", "REVOKED AT")
 		for _, c := range clients {
 			expiresAt := "never"
 			if c.ExpiresAt != nil {
 				expiresAt = c.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z07:00")
 			}
-			fmt.Printf("%-20s %-30s %-10v %-25s\n", c.Name, strings.Join(c.AllowedIPs, ","), c.Enabled, expiresAt)
+			status := "disabled"
+			if c.Enabled {
+				status = "enabled"
+			}
+			revokedAt := "-"
+			if c.RevokedAt != nil {
+				status = "revoked"
+				revokedAt = c.RevokedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
+			}
+			fmt.Printf("%-20s %-30s %-10s %-25s %-25s\n", c.Name, strings.Join(c.AllowedIPs, ","), status, expiresAt, revokedAt)
 		}
 	case "enable":
 		if len(args) < 2 {
@@ -149,6 +158,14 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		}
 		fmt.Printf("Client: %s\nNew API Key: %s\n", args[1], apiKey)
 		fmt.Println("The previous API key is now invalid. Update the credential in Automation/n8n immediately; this key will not be shown again.")
+	case "revoke":
+		if len(args) < 2 {
+			log.Fatal("client name required. Example: sudo minion client revoke automation")
+		}
+		if err := service.RevokeClient(args[1]); err != nil {
+			log.Fatalf("failed to revoke client: %v", err)
+		}
+		fmt.Printf("Client %s permanently revoked. Its API key is invalid and the record was preserved for audit.\n", args[1])
 	case "expire":
 		if len(args) < 3 {
 			log.Fatal("client name and expiration required. Example: sudo minion client expire automation 2026-08-31T23:59:59Z; use never to remove expiration")
@@ -170,6 +187,6 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		}
 		fmt.Printf("Client %s deleted\n", args[1])
 	default:
-		fmt.Println("Usage: minion client [create|list|enable|disable|rotate|expire|delete]")
+		fmt.Println("Usage: minion client [create|list|enable|disable|rotate|revoke|expire|delete]")
 	}
 }
