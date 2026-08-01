@@ -22,6 +22,11 @@ assert_mode() {
   [[ "$actual" == "$expected" ]] || fail "$path mode is $actual, expected $expected"
 }
 
+client_fingerprint() {
+  sudo sqlite3 "$DB" \
+    "SELECT name || '|' || allowed_ips || '|' || api_key_hash || '|' || enabled FROM clients ORDER BY name;"
+}
+
 cleanup() {
   sudo dpkg --remove minion >/dev/null 2>&1 || true
 }
@@ -65,7 +70,8 @@ printf '%s' "$response" | grep -q '"agent_id"' || fail "authenticated agent endp
 config_hash="$(sudo sha256sum "$CONFIG" | awk '{print $1}')"
 cert_hash="$(sudo sha256sum "$CERT" | awk '{print $1}')"
 key_hash="$(sudo sha256sum "$KEY" | awk '{print $1}')"
-db_hash="$(sudo sha256sum "$DB" | awk '{print $1}')"
+clients_before="$(client_fingerprint)"
+[[ -n "$clients_before" ]] || fail "no persisted API client found before reinstall"
 
 sudo dpkg -i "$PACKAGE"
 sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after reinstall"
@@ -74,7 +80,8 @@ sudo test ! -e "$BOOTSTRAP" || fail "reinstall recreated bootstrap credentials"
 [[ "$(sudo sha256sum "$CONFIG" | awk '{print $1}')" == "$config_hash" ]] || fail "reinstall changed configuration"
 [[ "$(sudo sha256sum "$CERT" | awk '{print $1}')" == "$cert_hash" ]] || fail "reinstall changed TLS certificate"
 [[ "$(sudo sha256sum "$KEY" | awk '{print $1}')" == "$key_hash" ]] || fail "reinstall changed TLS private key"
-[[ "$(sudo sha256sum "$DB" | awk '{print $1}')" == "$db_hash" ]] || fail "reinstall changed the client database"
+[[ "$(client_fingerprint)" == "$clients_before" ]] || fail "reinstall changed persisted API clients"
+unset clients_before
 
 curl --silent --show-error --fail --insecure \
   -H "Authorization: Bearer $api_key" \
