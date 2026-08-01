@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PKG_NAME="minion"
-PKG_VER="1.0.2"
+PKG_VER="1.0.3"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
@@ -58,7 +58,7 @@ if /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0
   if grep -q '^API Key:' "$BOOTSTRAP_TMP"; then
     mv -f "$BOOTSTRAP_TMP" "$BOOTSTRAP_FILE"
     chmod 600 "$BOOTSTRAP_FILE"
-    echo "Minion bootstrap credential created at $BOOTSTRAP_FILE (root only)."
+    echo "Minion bootstrap credential created securely."
   else
     rm -f "$BOOTSTRAP_TMP"
   fi
@@ -85,6 +85,9 @@ fi
 echo "Minion installed and running."
 echo "Status: systemctl status minion.service"
 echo "Health: https://127.0.0.1:9870/api/v1/health"
+if [ -f "$BOOTSTRAP_FILE" ]; then
+  echo "Next step: run 'sudo minion bootstrap show' to display the initial API key once."
+fi
 exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/postinst"
