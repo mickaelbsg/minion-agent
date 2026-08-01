@@ -54,3 +54,7 @@ jobs:
           grep -q 'bootstrap-credentials.txt' "$control/postinst"
           grep -q 'sudo minion bootstrap pair' "$control/postinst"
           grep -a -q 'Bootstrap paired for' "$root/usr/local/bin/minion"
+
+      - name: Test Debian install lifecycle
+        shell: bash
+        run: bash scripts/test-deb-lifecycle.sh ./minion_1.0.4_amd64.deb
