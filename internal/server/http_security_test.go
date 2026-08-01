@@ -123,7 +123,7 @@ func TestLimitRequestBodyAuditsRejectedPayload(t *testing.T) {
 	var count int
 	var clientName, sourceIP, action, detail string
 	err = store.DB.QueryRow(`
-		SELECT COUNT(*), COALESCE(client_name, ''), source_ip, action, detail
+		SELECT COUNT(*), COALESCE(client_name, ''), ip, action, detail
 		FROM audit
 		WHERE method = ? AND path = ? AND status = ?
 	`, http.MethodPost, "/api/v1/fail2ban/unban", http.StatusRequestEntityTooLarge).Scan(
