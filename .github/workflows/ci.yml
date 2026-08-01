@@ -32,6 +32,13 @@ jobs:
           PKG_VER=1.0.4 ./build_deb.sh
           PKG_VER=1.0.5 ./build_deb.sh
 
+          cat > /tmp/minion-broken <<'EOF'
+          #!/bin/sh
+          exit 42
+          EOF
+          chmod 755 /tmp/minion-broken
+          PKG_VER=1.0.6 MINION_BINARY=/tmp/minion-broken ./build_deb.sh
+
       - name: Validate Debian package
         shell: bash
         run: |
@@ -50,9 +57,13 @@ jobs:
           test -x "$root/usr/local/bin/minion"
           test -f "$root/lib/systemd/system/minion.service"
           test -f "$root/etc/minion/config.json"
+          test -x "$control/preinst"
           test -x "$control/postinst"
           test -x "$control/prerm"
           grep -qx '/etc/minion/config.json' "$control/conffiles"
+          grep -q 'upgrade-backup' "$control/preinst"
+          grep -q 'chmod -R go-rwx' "$control/preinst"
+          grep -q 'rollback_upgrade' "$control/postinst"
           grep -q 'minion setup' "$control/postinst"
           grep -q 'systemctl is-active --quiet minion.service' "$control/postinst"
           grep -q 'STATE_DIR="/var/lib/minion"' "$control/postinst"
@@ -60,6 +71,6 @@ jobs:
           grep -q 'sudo minion bootstrap pair' "$control/postinst"
           grep -a -q 'Bootstrap paired for' "$root/usr/local/bin/minion"
 
-      - name: Test Debian install and upgrade lifecycle
+      - name: Test Debian install, upgrade and rollback lifecycle
         shell: bash
-        run: bash scripts/test-deb-lifecycle.sh ./minion_1.0.4_amd64.deb ./minion_1.0.5_amd64.deb
+        run: bash scripts/test-deb-lifecycle.sh ./minion_1.0.4_amd64.deb ./minion_1.0.5_amd64.deb ./minion_1.0.6_amd64.deb
