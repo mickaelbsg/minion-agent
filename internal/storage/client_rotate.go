@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-// UpdateClientAPIKeyHash replaces the stored API key hash for an existing
-// client. It returns sql.ErrNoRows when the client does not exist so callers
-// cannot report a successful rotation that changed nothing.
+// UpdateClientAPIKeyHash replaces the stored API key hash for an existing,
+// non-revoked client. It returns sql.ErrNoRows when the client does not exist
+// or was permanently revoked.
 func (s *Storage) UpdateClientAPIKeyHash(name, hash string) error {
 	result, err := s.DB.Exec(
-		"UPDATE clients SET api_key_hash = ? WHERE name = ?",
+		"UPDATE clients SET api_key_hash = ? WHERE name = ? AND revoked_at IS NULL",
 		hash,
 		name,
 	)

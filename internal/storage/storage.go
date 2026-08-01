@@ -19,10 +19,15 @@ type Client struct {
 	APIKeyHash string     `json:"api_key_hash"`
 	Enabled    bool       `json:"enabled"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
 }
 
 func (c Client) IsExpired(now time.Time) bool {
 	return c.ExpiresAt != nil && !now.Before(*c.ExpiresAt)
+}
+
+func (c Client) IsRevoked() bool {
+	return c.RevokedAt != nil
 }
 
 type Storage struct {
@@ -63,6 +68,7 @@ func initSchema(db *sql.DB) error {
 		api_key_hash TEXT NOT NULL,
 		enabled BOOLEAN NOT NULL DEFAULT 1,
 		expires_at TEXT,
+		revoked_at TEXT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
 	if _, err := db.Exec(createClients); err != nil {
@@ -105,9 +111,14 @@ func initSchema(db *sql.DB) error {
 }
 
 func migrateClientSchema(db *sql.DB) error {
-	_, err := db.Exec(`ALTER TABLE clients ADD COLUMN expires_at TEXT;`)
-	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
-		return err
+	migrations := []string{
+		`ALTER TABLE clients ADD COLUMN expires_at TEXT;`,
+		`ALTER TABLE clients ADD COLUMN revoked_at TEXT;`,
+	}
+	for _, stmt := range migrations {
+		if _, err := db.Exec(stmt); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+			return err
+		}
 	}
 	return nil
 }
@@ -142,7 +153,7 @@ func (s *Storage) InsertAuditDetail(clientName, ip, method, path string, status 
 }
 
 func (s *Storage) GetClients() (clients []Client, err error) {
-	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled, expires_at FROM clients")
+	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled, expires_at, revoked_at FROM clients")
 	if err != nil {
 		return nil, err
 	}
@@ -156,8 +167,8 @@ func (s *Storage) GetClients() (clients []Client, err error) {
 	for rows.Next() {
 		var c Client
 		var ips string
-		var expiresAt sql.NullString
-		if err := rows.Scan(&c.ID, &c.Name, &ips, &c.APIKeyHash, &c.Enabled, &expiresAt); err != nil {
+		var expiresAt, revokedAt sql.NullString
+		if err := rows.Scan(&c.ID, &c.Name, &ips, &c.APIKeyHash, &c.Enabled, &expiresAt, &revokedAt); err != nil {
 			return nil, err
 		}
 		c.AllowedIPs = strings.Split(ips, ",")
@@ -169,7 +180,15 @@ func (s *Storage) GetClients() (clients []Client, err error) {
 			parsed = parsed.UTC()
 			c.ExpiresAt = &parsed
 		}
-		if c.IsExpired(now) {
+		if revokedAt.Valid && strings.TrimSpace(revokedAt.String) != "" {
+			parsed, parseErr := time.Parse(time.RFC3339, revokedAt.String)
+			if parseErr != nil {
+				return nil, fmt.Errorf("client %q has invalid revoked_at value: %w", c.Name, parseErr)
+			}
+			parsed = parsed.UTC()
+			c.RevokedAt = &parsed
+		}
+		if c.IsExpired(now) || c.IsRevoked() {
 			c.Enabled = false
 		}
 		clients = append(clients, c)
@@ -193,7 +212,11 @@ func (s *Storage) UpdateClientStatus(name string, enabled bool) error {
 	if enabled {
 		val = 1
 	}
-	result, err := s.DB.Exec("UPDATE clients SET enabled = ? WHERE name = ?", val, name)
+	query := "UPDATE clients SET enabled = ? WHERE name = ?"
+	if enabled {
+		query += " AND revoked_at IS NULL"
+	}
+	result, err := s.DB.Exec(query, val, name)
 	if err != nil {
 		return err
 	}
@@ -205,7 +228,7 @@ func (s *Storage) SetClientExpiration(name string, expiresAt *time.Time) error {
 	if expiresAt != nil {
 		value = expiresAt.UTC().Format(time.RFC3339)
 	}
-	result, err := s.DB.Exec("UPDATE clients SET expires_at = ? WHERE name = ?", value, name)
+	result, err := s.DB.Exec("UPDATE clients SET expires_at = ? WHERE name = ? AND revoked_at IS NULL", value, name)
 	if err != nil {
 		return err
 	}
@@ -218,7 +241,7 @@ func requireAffectedClient(result sql.Result, name string) error {
 		return err
 	}
 	if rows == 0 {
-		return fmt.Errorf("client %q not found", name)
+		return fmt.Errorf("client %q not found or revoked", name)
 	}
 	return nil
 }
