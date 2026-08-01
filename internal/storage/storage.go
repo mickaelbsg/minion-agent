@@ -152,6 +152,7 @@ func (s *Storage) GetClients() (clients []Client, err error) {
 		}
 	}()
 
+	now := time.Now().UTC()
 	for rows.Next() {
 		var c Client
 		var ips string
@@ -167,6 +168,9 @@ func (s *Storage) GetClients() (clients []Client, err error) {
 			}
 			parsed = parsed.UTC()
 			c.ExpiresAt = &parsed
+		}
+		if c.IsExpired(now) {
+			c.Enabled = false
 		}
 		clients = append(clients, c)
 	}
