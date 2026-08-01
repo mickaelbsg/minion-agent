@@ -25,15 +25,20 @@ jobs:
       - name: Build
         run: go build ./cmd/minion
 
-      - name: Build Debian package
-        run: ./build_deb.sh
+      - name: Build Debian packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          PKG_VER=1.0.4 ./build_deb.sh
+          PKG_VER=1.0.5 ./build_deb.sh
 
       - name: Validate Debian package
         shell: bash
         run: |
           set -euo pipefail
-          package="./minion_1.0.4_amd64.deb"
+          package="./minion_1.0.5_amd64.deb"
           test -f "$package"
+          test "$(dpkg-deb -f "$package" Version)" = "1.0.5"
           dpkg-deb --info "$package"
           dpkg-deb --contents "$package"
 
@@ -55,6 +60,6 @@ jobs:
           grep -q 'sudo minion bootstrap pair' "$control/postinst"
           grep -a -q 'Bootstrap paired for' "$root/usr/local/bin/minion"
 
-      - name: Test Debian install lifecycle
+      - name: Test Debian install and upgrade lifecycle
         shell: bash
-        run: bash scripts/test-deb-lifecycle.sh ./minion_1.0.4_amd64.deb
+        run: bash scripts/test-deb-lifecycle.sh ./minion_1.0.4_amd64.deb ./minion_1.0.5_amd64.deb
