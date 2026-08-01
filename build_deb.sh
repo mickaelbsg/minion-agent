@@ -7,6 +7,7 @@ PKG_VER="${PKG_VER:-1.0.4}"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
+MINION_BINARY="${MINION_BINARY:-$(pwd)/minion}"
 
 trap 'rm -rf "$BUILD_ROOT"' EXIT
 
@@ -32,6 +33,39 @@ EOF
 
 echo "/etc/minion/config.json" > "$DEB_ROOT/DEBIAN/conffiles"
 
+cat > "$DEB_ROOT/DEBIAN/preinst" <<'EOS'
+#!/bin/sh
+set -e
+
+BACKUP_DIR="/var/lib/minion/upgrade-backup"
+
+if [ "$1" = "upgrade" ]; then
+  systemctl stop minion.service >/dev/null 2>&1 || true
+
+  rm -rf "$BACKUP_DIR"
+  install -d -o root -g root -m 700 \
+    "$BACKUP_DIR/etc/minion" \
+    "$BACKUP_DIR/opt/minion" \
+    "$BACKUP_DIR/usr/local/bin" \
+    "$BACKUP_DIR/lib/systemd/system"
+
+  [ ! -f /etc/minion/config.json ] || cp -a /etc/minion/config.json "$BACKUP_DIR/etc/minion/config.json"
+  [ ! -d /etc/minion/tls ] || cp -a /etc/minion/tls "$BACKUP_DIR/etc/minion/tls"
+  [ ! -f /opt/minion/minion.db ] || cp -a /opt/minion/minion.db "$BACKUP_DIR/opt/minion/minion.db"
+  [ ! -f /opt/minion/minion.db-wal ] || cp -a /opt/minion/minion.db-wal "$BACKUP_DIR/opt/minion/minion.db-wal"
+  [ ! -f /opt/minion/minion.db-shm ] || cp -a /opt/minion/minion.db-shm "$BACKUP_DIR/opt/minion/minion.db-shm"
+  [ ! -f /usr/local/bin/minion ] || cp -a /usr/local/bin/minion "$BACKUP_DIR/usr/local/bin/minion"
+  [ ! -f /lib/systemd/system/minion.service ] || cp -a /lib/systemd/system/minion.service "$BACKUP_DIR/lib/systemd/system/minion.service"
+
+  printf '%s\n' "$2" > "$BACKUP_DIR/from-version"
+  chmod -R go-rwx "$BACKUP_DIR"
+  touch "$BACKUP_DIR/ready"
+fi
+
+exit 0
+EOS
+chmod 755 "$DEB_ROOT/DEBIAN/preinst"
+
 cat > "$DEB_ROOT/DEBIAN/postinst" <<'EOS'
 #!/bin/sh
 set -e
@@ -40,8 +74,50 @@ CONFIG="/etc/minion/config.json"
 DATA_DIR="/opt/minion"
 TLS_DIR="/etc/minion/tls"
 STATE_DIR="/var/lib/minion"
+BACKUP_DIR="$STATE_DIR/upgrade-backup"
 BOOTSTRAP_FILE="$STATE_DIR/bootstrap-credentials.txt"
 BOOTSTRAP_TMP="$STATE_DIR/.bootstrap-credentials.tmp"
+
+rollback_upgrade() {
+  [ -f "$BACKUP_DIR/ready" ] || return 0
+
+  echo "Minion upgrade failed; restoring the previous operational state." >&2
+  systemctl stop minion.service >/dev/null 2>&1 || true
+
+  if [ -f "$BACKUP_DIR/etc/minion/config.json" ]; then
+    install -d -o root -g root -m 700 /etc/minion
+    cp -a "$BACKUP_DIR/etc/minion/config.json" /etc/minion/config.json
+  fi
+  if [ -d "$BACKUP_DIR/etc/minion/tls" ]; then
+    rm -rf /etc/minion/tls
+    cp -a "$BACKUP_DIR/etc/minion/tls" /etc/minion/tls
+  fi
+
+  rm -f /opt/minion/minion.db /opt/minion/minion.db-wal /opt/minion/minion.db-shm
+  for file in minion.db minion.db-wal minion.db-shm; do
+    [ ! -f "$BACKUP_DIR/opt/minion/$file" ] || cp -a "$BACKUP_DIR/opt/minion/$file" "/opt/minion/$file"
+  done
+
+  [ ! -f "$BACKUP_DIR/usr/local/bin/minion" ] || cp -a "$BACKUP_DIR/usr/local/bin/minion" /usr/local/bin/minion
+  [ ! -f "$BACKUP_DIR/lib/systemd/system/minion.service" ] || cp -a "$BACKUP_DIR/lib/systemd/system/minion.service" /lib/systemd/system/minion.service
+
+  systemctl daemon-reload >/dev/null 2>&1 || true
+  systemctl reset-failed minion.service >/dev/null 2>&1 || true
+  if systemctl restart minion.service >/dev/null 2>&1 && systemctl is-active --quiet minion.service; then
+    echo "Previous Minion service restored and running. Package configuration remains failed; inspect dpkg status before retrying the upgrade." >&2
+  else
+    echo "Previous files were restored, but the Minion service could not be restarted. Run: journalctl -u minion.service -n 100" >&2
+  fi
+}
+
+on_exit() {
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    rollback_upgrade
+  fi
+  exit "$rc"
+}
+trap on_exit EXIT
 
 install -d -o root -g root -m 700 /etc/minion "$TLS_DIR" "$DATA_DIR" "$STATE_DIR"
 chmod 600 "$CONFIG"
@@ -59,7 +135,6 @@ if /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0
     rm -f "$BOOTSTRAP_TMP"
   fi
 else
-  cat "$BOOTSTRAP_TMP" >&2
   rm -f "$BOOTSTRAP_TMP"
   echo "Minion bootstrap failed; package configuration was not completed." >&2
   exit 1
@@ -77,6 +152,9 @@ if ! systemctl is-active --quiet minion.service; then
   echo "Minion service failed to start. Run: journalctl -u minion.service -n 100" >&2
   exit 1
 fi
+
+rm -rf "$BACKUP_DIR"
+trap - EXIT
 
 echo "Minion installed and running."
 echo "Status: systemctl status minion.service"
@@ -99,11 +177,11 @@ exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 
-if [[ ! -f "$(pwd)/minion" ]]; then
+if [[ ! -f "$MINION_BINARY" ]]; then
   echo "Compiling minion binary..."
-  go build -o minion ./cmd/minion
+  go build -o "$MINION_BINARY" ./cmd/minion
 fi
-install -m 755 "$(pwd)/minion" "$DEB_ROOT/usr/local/bin/minion"
+install -m 755 "$MINION_BINARY" "$DEB_ROOT/usr/local/bin/minion"
 
 if [[ -f "config.example.json" ]]; then
   install -m 600 config.example.json "$DEB_ROOT/etc/minion/config.json"
