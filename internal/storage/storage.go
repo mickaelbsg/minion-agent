@@ -7,16 +7,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type Client struct {
-	ID         int      `json:"id"`
-	Name       string   `json:"name"`
-	AllowedIPs []string `json:"allowed_ips"`
-	APIKeyHash string   `json:"api_key_hash"`
-	Enabled    bool     `json:"enabled"`
+	ID         int        `json:"id"`
+	Name       string     `json:"name"`
+	AllowedIPs []string   `json:"allowed_ips"`
+	APIKeyHash string     `json:"api_key_hash"`
+	Enabled    bool       `json:"enabled"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+}
+
+func (c Client) IsExpired(now time.Time) bool {
+	return c.ExpiresAt != nil && !now.Before(*c.ExpiresAt)
 }
 
 type Storage struct {
@@ -56,9 +62,13 @@ func initSchema(db *sql.DB) error {
 		allowed_ips TEXT NOT NULL,
 		api_key_hash TEXT NOT NULL,
 		enabled BOOLEAN NOT NULL DEFAULT 1,
+		expires_at TEXT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
 	if _, err := db.Exec(createClients); err != nil {
+		return err
+	}
+	if err := migrateClientSchema(db); err != nil {
 		return err
 	}
 	createAudit := `CREATE TABLE IF NOT EXISTS audit (
@@ -94,6 +104,14 @@ func initSchema(db *sql.DB) error {
 	return nil
 }
 
+func migrateClientSchema(db *sql.DB) error {
+	_, err := db.Exec(`ALTER TABLE clients ADD COLUMN expires_at TEXT;`)
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+		return err
+	}
+	return nil
+}
+
 func migrateAuditSchema(db *sql.DB) error {
 	migrations := []string{
 		`ALTER TABLE audit ADD COLUMN action TEXT;`,
@@ -124,7 +142,7 @@ func (s *Storage) InsertAuditDetail(clientName, ip, method, path string, status 
 }
 
 func (s *Storage) GetClients() (clients []Client, err error) {
-	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled FROM clients")
+	rows, err := s.DB.Query("SELECT id, name, allowed_ips, api_key_hash, enabled, expires_at FROM clients")
 	if err != nil {
 		return nil, err
 	}
@@ -137,10 +155,19 @@ func (s *Storage) GetClients() (clients []Client, err error) {
 	for rows.Next() {
 		var c Client
 		var ips string
-		if err := rows.Scan(&c.ID, &c.Name, &ips, &c.APIKeyHash, &c.Enabled); err != nil {
+		var expiresAt sql.NullString
+		if err := rows.Scan(&c.ID, &c.Name, &ips, &c.APIKeyHash, &c.Enabled, &expiresAt); err != nil {
 			return nil, err
 		}
 		c.AllowedIPs = strings.Split(ips, ",")
+		if expiresAt.Valid && strings.TrimSpace(expiresAt.String) != "" {
+			parsed, parseErr := time.Parse(time.RFC3339, expiresAt.String)
+			if parseErr != nil {
+				return nil, fmt.Errorf("client %q has invalid expires_at value: %w", c.Name, parseErr)
+			}
+			parsed = parsed.UTC()
+			c.ExpiresAt = &parsed
+		}
 		clients = append(clients, c)
 	}
 	if err := rows.Err(); err != nil {
@@ -162,11 +189,40 @@ func (s *Storage) UpdateClientStatus(name string, enabled bool) error {
 	if enabled {
 		val = 1
 	}
-	_, err := s.DB.Exec("UPDATE clients SET enabled = ? WHERE name = ?", val, name)
-	return err
+	result, err := s.DB.Exec("UPDATE clients SET enabled = ? WHERE name = ?", val, name)
+	if err != nil {
+		return err
+	}
+	return requireAffectedClient(result, name)
+}
+
+func (s *Storage) SetClientExpiration(name string, expiresAt *time.Time) error {
+	var value interface{}
+	if expiresAt != nil {
+		value = expiresAt.UTC().Format(time.RFC3339)
+	}
+	result, err := s.DB.Exec("UPDATE clients SET expires_at = ? WHERE name = ?", value, name)
+	if err != nil {
+		return err
+	}
+	return requireAffectedClient(result, name)
+}
+
+func requireAffectedClient(result sql.Result, name string) error {
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("client %q not found", name)
+	}
+	return nil
 }
 
 func (s *Storage) DeleteClient(name string) error {
-	_, err := s.DB.Exec("DELETE FROM clients WHERE name = ?", name)
-	return err
+	result, err := s.DB.Exec("DELETE FROM clients WHERE name = ?", name)
+	if err != nil {
+		return err
+	}
+	return requireAffectedClient(result, name)
 }
