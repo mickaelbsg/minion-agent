@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
@@ -32,18 +33,21 @@ func (s *Server) limitRequestBody(next http.Handler) http.Handler {
 		}
 
 		if r.ContentLength > maxRequestBodyBytes {
+			s.auditBodyRejection(r, http.StatusRequestEntityTooLarge, "declared_size_exceeded")
 			s.writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 			return
 		}
 
 		body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestBodyBytes+1))
 		if err != nil {
+			s.auditBodyRejection(r, http.StatusBadRequest, "body_read_failed")
 			s.writeError(w, http.StatusBadRequest, "failed to read request body")
 			return
 		}
 		_ = r.Body.Close()
 
 		if len(body) > maxRequestBodyBytes {
+			s.auditBodyRejection(r, http.StatusRequestEntityTooLarge, "streamed_size_exceeded")
 			s.writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 			return
 		}
@@ -52,4 +56,26 @@ func (s *Server) limitRequestBody(next http.Handler) http.Handler {
 		r.ContentLength = int64(len(body))
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) auditBodyRejection(r *http.Request, status int, reason string) {
+	if s == nil || s.storage == nil {
+		return
+	}
+
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+
+	_ = s.storage.InsertAuditDetail(
+		"",
+		host,
+		r.Method,
+		r.URL.Path,
+		status,
+		"request_body_rejected",
+		"",
+		"reason="+reason,
+	)
 }
