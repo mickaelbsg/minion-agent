@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE="${1:-./minion_1.0.4_amd64.deb}"
+INSTALL_PACKAGE="${1:-./minion_1.0.4_amd64.deb}"
+UPGRADE_PACKAGE="${2:-$INSTALL_PACKAGE}"
 SERVICE="minion.service"
 CONFIG="/etc/minion/config.json"
 DB="/opt/minion/minion.db"
@@ -27,14 +28,26 @@ client_fingerprint() {
     "SELECT name || '|' || allowed_ips || '|' || api_key_hash || '|' || enabled FROM clients ORDER BY name;"
 }
 
+package_version() {
+  dpkg-deb -f "$1" Version
+}
+
 cleanup() {
   sudo dpkg --remove minion >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-[[ -f "$PACKAGE" ]] || fail "package not found: $PACKAGE"
+[[ -f "$INSTALL_PACKAGE" ]] || fail "install package not found: $INSTALL_PACKAGE"
+[[ -f "$UPGRADE_PACKAGE" ]] || fail "upgrade package not found: $UPGRADE_PACKAGE"
 command -v systemctl >/dev/null || fail "systemctl is unavailable"
 [[ "$(ps -p 1 -o comm=)" == "systemd" ]] || fail "test host is not running systemd as PID 1"
+
+install_version="$(package_version "$INSTALL_PACKAGE")"
+upgrade_version="$(package_version "$UPGRADE_PACKAGE")"
+if [[ "$INSTALL_PACKAGE" != "$UPGRADE_PACKAGE" ]]; then
+  dpkg --compare-versions "$upgrade_version" gt "$install_version" || \
+    fail "upgrade package version $upgrade_version must be newer than $install_version"
+fi
 
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables fail2ban openssl sqlite3 curl >/dev/null
@@ -43,7 +56,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables fail2ban ope
 sudo dpkg --remove minion >/dev/null 2>&1 || true
 sudo rm -rf /etc/minion /opt/minion /var/lib/minion
 
-sudo dpkg -i "$PACKAGE"
+sudo dpkg -i "$INSTALL_PACKAGE"
+[[ "$(dpkg-query -W -f='${Version}' minion)" == "$install_version" ]] || fail "unexpected installed package version"
 sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after installation"
 
 for path in "$CONFIG" "$DB" "$CERT" "$KEY" "$BOOTSTRAP"; do
@@ -71,16 +85,17 @@ config_hash="$(sudo sha256sum "$CONFIG" | awk '{print $1}')"
 cert_hash="$(sudo sha256sum "$CERT" | awk '{print $1}')"
 key_hash="$(sudo sha256sum "$KEY" | awk '{print $1}')"
 clients_before="$(client_fingerprint)"
-[[ -n "$clients_before" ]] || fail "no persisted API client found before reinstall"
+[[ -n "$clients_before" ]] || fail "no persisted API client found before package transition"
 
-sudo dpkg -i "$PACKAGE"
-sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after reinstall"
-sudo test ! -e "$BOOTSTRAP" || fail "reinstall recreated bootstrap credentials"
+sudo dpkg -i "$UPGRADE_PACKAGE"
+[[ "$(dpkg-query -W -f='${Version}' minion)" == "$upgrade_version" ]] || fail "package was not upgraded to $upgrade_version"
+sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after package upgrade"
+sudo test ! -e "$BOOTSTRAP" || fail "package upgrade recreated bootstrap credentials"
 
-[[ "$(sudo sha256sum "$CONFIG" | awk '{print $1}')" == "$config_hash" ]] || fail "reinstall changed configuration"
-[[ "$(sudo sha256sum "$CERT" | awk '{print $1}')" == "$cert_hash" ]] || fail "reinstall changed TLS certificate"
-[[ "$(sudo sha256sum "$KEY" | awk '{print $1}')" == "$key_hash" ]] || fail "reinstall changed TLS private key"
-[[ "$(client_fingerprint)" == "$clients_before" ]] || fail "reinstall changed persisted API clients"
+[[ "$(sudo sha256sum "$CONFIG" | awk '{print $1}')" == "$config_hash" ]] || fail "package upgrade changed configuration"
+[[ "$(sudo sha256sum "$CERT" | awk '{print $1}')" == "$cert_hash" ]] || fail "package upgrade changed TLS certificate"
+[[ "$(sudo sha256sum "$KEY" | awk '{print $1}')" == "$key_hash" ]] || fail "package upgrade changed TLS private key"
+[[ "$(client_fingerprint)" == "$clients_before" ]] || fail "package upgrade changed persisted API clients"
 unset clients_before
 
 curl --silent --show-error --fail --insecure \
@@ -94,4 +109,4 @@ sudo test -f "$CERT" || fail "package removal deleted TLS certificate"
 sudo test -f "$KEY" || fail "package removal deleted TLS private key"
 
 trap - EXIT
-echo "Debian package lifecycle validated successfully."
+echo "Debian package install, upgrade and removal lifecycle validated successfully."
