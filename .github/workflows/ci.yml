@@ -53,4 +53,4 @@ jobs:
           grep -q 'STATE_DIR="/var/lib/minion"' "$control/postinst"
           grep -q 'bootstrap-credentials.txt' "$control/postinst"
           grep -q 'sudo minion bootstrap show' "$control/postinst"
-          strings "$root/usr/local/bin/minion" | grep -q 'bootstrap credentials consumed'
+          grep -a -q 'bootstrap credentials consumed' "$root/usr/local/bin/minion"
