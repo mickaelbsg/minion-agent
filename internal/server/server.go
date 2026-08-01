@@ -53,9 +53,10 @@ func (s *Server) Start() error {
 	log.Printf("Minion listening on %s", addr)
 	certFile := "/etc/minion/tls/minion.crt"
 	keyFile := "/etc/minion/tls/minion.key"
+	server := newHTTPServer(addr, s.limitRequestBody(mux))
 
 	if fileExists(certFile) && fileExists(keyFile) {
-		return http.ListenAndServeTLS(addr, certFile, keyFile, mux)
+		return server.ListenAndServeTLS(certFile, keyFile)
 	}
 
 	if !s.cfg.API.AllowInsecureHTTP {
@@ -63,7 +64,7 @@ func (s *Server) Start() error {
 	}
 
 	log.Printf("TLS certificate/key not found; insecure HTTP explicitly enabled in config")
-	return http.ListenAndServe(addr, mux)
+	return server.ListenAndServe()
 }
 
 func fileExists(path string) bool {
