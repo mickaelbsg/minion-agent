@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PKG_NAME="minion"
-PKG_VER="1.0.4"
+PKG_VER="${PKG_VER:-1.0.4}"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
