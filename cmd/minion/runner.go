@@ -27,6 +27,7 @@ func run() {
 			if !strings.Contains(arg, "=") && i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
 				flagsOnly = append(flagsOnly, os.Args[i+1])
 				i++
+			}
 		} else {
 			subcommands = append(subcommands, arg)
 		}
