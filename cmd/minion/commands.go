@@ -135,6 +135,16 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 			log.Fatalf("failed to disable client: %v", err)
 		}
 		fmt.Printf("Client %s disabled\n", args[1])
+	case "rotate":
+		if len(args) < 2 {
+			log.Fatal("client name required. Example: sudo minion client rotate automation")
+		}
+		apiKey, err := service.RotateClientAPIKey(args[1])
+		if err != nil {
+			log.Fatalf("failed to rotate client API key: %v", err)
+		}
+		fmt.Printf("Client: %s\nNew API Key: %s\n", args[1], apiKey)
+		fmt.Println("The previous API key is now invalid. Update the credential in Automation/n8n immediately; this key will not be shown again.")
 	case "delete":
 		if len(args) < 2 {
 			log.Fatal("client name required")
@@ -144,6 +154,6 @@ func handleClientCommands(args []string, configPath, name, ips string) {
 		}
 		fmt.Printf("Client %s deleted\n", args[1])
 	default:
-		fmt.Println("Usage: minion client [create|list|enable|disable|delete]")
+		fmt.Println("Usage: minion client [create|list|enable|disable|rotate|delete]")
 	}
 }
