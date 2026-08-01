@@ -51,8 +51,12 @@ func TestRevokeClientInvalidatesKeyAndPreservesRecord(t *testing.T) {
 	if security.VerifyAPIKey(created.APIKey, client.APIKeyHash) {
 		t.Fatal("old API key remained valid after revocation")
 	}
-	if !strings.HasPrefix(client.APIKeyHash, "$argon2id$") {
-		t.Fatalf("replacement hash is not Argon2id: %q", client.APIKeyHash)
+	parts := strings.Split(client.APIKeyHash, "$")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		t.Fatal("replacement hash does not use the project's salt$argon2id format")
+	}
+	if client.APIKeyHash == created.APIKeyHash {
+		t.Fatal("revocation preserved the previous API key hash")
 	}
 }
 
