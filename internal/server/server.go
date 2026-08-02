@@ -48,6 +48,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/v1/services", s.audit(s.auth(s.handleServices)))
 	mux.HandleFunc("/api/v1/fail2ban", s.audit(s.auth(s.handleFail2Ban)))
 	mux.HandleFunc("/api/v1/fail2ban/unban", s.audit(s.auth(s.idempotentAction("fail2ban_unban", s.handleFail2BanUnban))))
+	mux.HandleFunc("/api/v1/idempotency/in-progress", s.audit(s.auth(s.handleIdempotencyInProgress)))
 	mux.HandleFunc("/api/v1/ipblock", s.audit(s.auth(s.handleIPBlock)))
 	mux.HandleFunc("/api/v1/wazuh", s.audit(s.auth(s.handleWazuh)))
 	mux.HandleFunc("/api/v1/logins", s.audit(s.auth(s.handleLogins)))

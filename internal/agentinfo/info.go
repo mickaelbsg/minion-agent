@@ -104,6 +104,7 @@ func capabilities() []string {
 		"fail2ban.read",
 		"fail2ban.unban",
 		"firewall.iptables.read",
+		"idempotency.in-progress.read",
 		"ipblock.read",
 		"journal.read",
 		"logins.read",
