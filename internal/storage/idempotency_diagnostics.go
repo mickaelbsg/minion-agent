@@ -6,6 +6,7 @@ import (
 )
 
 const MaxIdempotencyDiagnosticsLimit = 100
+const maxIdempotencyDiagnosticsQueryLimit = MaxIdempotencyDiagnosticsLimit + 1
 
 type IdempotencyDiagnostic struct {
 	ClientName string    `json:"client_name"`
@@ -19,8 +20,8 @@ func (s *Storage) ListInProgressIdempotency(action string, limit, offset int) ([
 	if err := s.ensureIdempotencySchema(); err != nil {
 		return nil, err
 	}
-	if limit < 1 || limit > MaxIdempotencyDiagnosticsLimit {
-		return nil, errors.New("idempotency diagnostics limit must be between 1 and 100")
+	if limit < 1 || limit > maxIdempotencyDiagnosticsQueryLimit {
+		return nil, errors.New("idempotency diagnostics query limit must be between 1 and 101")
 	}
 	if offset < 0 {
 		return nil, errors.New("idempotency diagnostics offset must not be negative")
