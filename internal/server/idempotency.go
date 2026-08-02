@@ -66,7 +66,7 @@ func payloadDigest(body []byte) string {
 
 func replayBody(status int, body []byte) []byte {
 	if status >= http.StatusBadRequest {
-		return []byte(`{"error":"request failed"}` + "\n")
+		return []byte("{\"error\":\"request failed\"}\n")
 	}
 	return append([]byte(nil), body...)
 }
