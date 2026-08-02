@@ -9,7 +9,10 @@ import (
 
 var defaultAllowedFail2BanJails = []string{"sshd", "apache-auth", "recidive"}
 
-const defaultIdempotencyRetentionHours = 168
+const (
+	defaultIdempotencyRetentionHours = 168
+	maxIdempotencyRetentionHours     = 87600 // 10 years
+)
 
 type Client struct {
 	Name       string   `json:"name"`
@@ -63,6 +66,9 @@ func Read(path string) (*Config, error) {
 	}
 
 	applyDefaults(&cfg)
+	if err := validateSecurity(&cfg.Security); err != nil {
+		return nil, err
+	}
 
 	return &cfg, nil
 }
@@ -73,6 +79,9 @@ func Save(path string, cfg *Config) error {
 	}
 
 	applyDefaults(cfg)
+	if err := validateSecurity(&cfg.Security); err != nil {
+		return err
+	}
 
 	if dir := filepath.Dir(path); dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -131,6 +140,16 @@ func applySecurityDefaults(cfg *SecurityConfig) {
 	if cfg.IdempotencyRetentionHours <= 0 {
 		cfg.IdempotencyRetentionHours = defaultIdempotencyRetentionHours
 	}
+}
+
+func validateSecurity(cfg *SecurityConfig) error {
+	if cfg.IdempotencyRetentionHours > maxIdempotencyRetentionHours {
+		return fmt.Errorf(
+			"security.idempotency_retention_hours must be at most %d",
+			maxIdempotencyRetentionHours,
+		)
+	}
+	return nil
 }
 
 func applyRateLimitDefaults(cfg *RateLimitConfig) {
