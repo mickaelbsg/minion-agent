@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -34,13 +35,16 @@ func TestHandleIdempotencyInProgressReturnsSanitizedRecords(t *testing.T) {
 		t.Fatalf("status = %d, want 200; body=%s", recorder.Code, recorder.Body.String())
 	}
 	var response struct {
-		Count   int                             `json:"count"`
-		Records []storage.IdempotencyDiagnostic `json:"records"`
+		Count      int                             `json:"count"`
+		Offset     int                             `json:"offset"`
+		NextOffset int                             `json:"next_offset"`
+		HasMore    bool                            `json:"has_more"`
+		Records    []storage.IdempotencyDiagnostic `json:"records"`
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response error = %v", err)
 	}
-	if response.Count != 1 || len(response.Records) != 1 {
+	if response.Count != 1 || response.Offset != 0 || response.NextOffset != 1 || response.HasMore {
 		t.Fatalf("unexpected response: %+v", response)
 	}
 	if response.Records[0].RequestID != "req-00000010" {
@@ -48,9 +52,42 @@ func TestHandleIdempotencyInProgressReturnsSanitizedRecords(t *testing.T) {
 	}
 	body := recorder.Body.String()
 	for _, forbidden := range []string{"payload-secret", "payload_hash", "response_body"} {
-		if contains := stringContains(body, forbidden); contains {
+		if stringContains(body, forbidden) {
 			t.Fatalf("response contains forbidden value %q: %s", forbidden, body)
 		}
+	}
+}
+
+func TestHandleIdempotencyInProgressPaginatesBeyondFirstPage(t *testing.T) {
+	s := newIdempotencyDiagnosticsServer(t)
+	for i := 0; i < 3; i++ {
+		requestID := fmt.Sprintf("req-%02d", i)
+		if _, err := s.storage.ClaimIdempotency("automation", "fail2ban_unban", requestID, "hash"); err != nil {
+			t.Fatalf("claim error = %v", err)
+		}
+	}
+
+	first := httptest.NewRecorder()
+	s.handleIdempotencyInProgress(first, httptest.NewRequest(http.MethodGet, "/api/v1/idempotency/in-progress?limit=2", nil))
+	var page struct {
+		Count      int  `json:"count"`
+		NextOffset int  `json:"next_offset"`
+		HasMore    bool `json:"has_more"`
+	}
+	if err := json.Unmarshal(first.Body.Bytes(), &page); err != nil {
+		t.Fatalf("decode first page error = %v", err)
+	}
+	if page.Count != 2 || !page.HasMore || page.NextOffset != 2 {
+		t.Fatalf("unexpected first page: %+v", page)
+	}
+
+	second := httptest.NewRecorder()
+	s.handleIdempotencyInProgress(second, httptest.NewRequest(http.MethodGet, "/api/v1/idempotency/in-progress?limit=2&offset=2", nil))
+	if err := json.Unmarshal(second.Body.Bytes(), &page); err != nil {
+		t.Fatalf("decode second page error = %v", err)
+	}
+	if page.Count != 1 || page.HasMore || page.NextOffset != 3 {
+		t.Fatalf("unexpected second page: %+v", page)
 	}
 }
 
@@ -67,6 +104,8 @@ func TestHandleIdempotencyInProgressValidatesMethodAndQuery(t *testing.T) {
 		"/api/v1/idempotency/in-progress?limit=0",
 		"/api/v1/idempotency/in-progress?limit=101",
 		"/api/v1/idempotency/in-progress?limit=invalid",
+		"/api/v1/idempotency/in-progress?offset=-1",
+		"/api/v1/idempotency/in-progress?offset=invalid",
 		"/api/v1/idempotency/in-progress?action=unknown",
 	} {
 		recorder := httptest.NewRecorder()
