@@ -73,6 +73,12 @@ func replayBody(status int, body []byte) []byte {
 
 func (s *Server) idempotentAction(action string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+
 		requestID := r.Header.Get("X-Request-ID")
 		if !requestIDPattern.MatchString(requestID) {
 			s.writeError(w, http.StatusBadRequest, "valid X-Request-ID header required")
