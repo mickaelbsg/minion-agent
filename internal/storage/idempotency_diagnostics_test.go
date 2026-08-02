@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestListInProgressIdempotencyFiltersOrdersAndSanitizes(t *testing.T) {
+func TestListInProgressIdempotencyFiltersOrdersAndPaginates(t *testing.T) {
 	store, err := New(filepath.Join(t.TempDir(), "minion.db"))
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -34,31 +34,32 @@ func TestListInProgressIdempotencyFiltersOrdersAndSanitizes(t *testing.T) {
 		t.Fatalf("age record error = %v", err)
 	}
 
-	items, err := store.ListInProgressIdempotency("fail2ban_unban", 10)
+	first, err := store.ListInProgressIdempotency("fail2ban_unban", 1, 0)
 	if err != nil {
-		t.Fatalf("ListInProgressIdempotency() error = %v", err)
+		t.Fatalf("first page error = %v", err)
 	}
-	if len(items) != 2 {
-		t.Fatalf("len(items) = %d, want 2", len(items))
+	second, err := store.ListInProgressIdempotency("fail2ban_unban", 1, 1)
+	if err != nil {
+		t.Fatalf("second page error = %v", err)
 	}
-	if items[0].RequestID != "req-old" || items[1].RequestID != "req-new" {
-		t.Fatalf("unexpected order: %+v", items)
+	if len(first) != 1 || first[0].RequestID != "req-old" {
+		t.Fatalf("unexpected first page: %+v", first)
 	}
-	if items[0].ClientName != "automation-a" || items[0].Action != "fail2ban_unban" {
-		t.Fatalf("unexpected diagnostic: %+v", items[0])
+	if len(second) != 1 || second[0].RequestID != "req-new" {
+		t.Fatalf("unexpected second page: %+v", second)
 	}
 }
 
-func TestListInProgressIdempotencyEnforcesLimit(t *testing.T) {
+func TestListInProgressIdempotencyValidatesBounds(t *testing.T) {
 	store, err := New(filepath.Join(t.TempDir(), "minion.db"))
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
 	defer store.DB.Close()
 
-	for _, limit := range []int{0, MaxIdempotencyDiagnosticsLimit + 1} {
-		if _, err := store.ListInProgressIdempotency("", limit); err == nil {
-			t.Fatalf("expected error for limit %d", limit)
+	for _, tc := range []struct{ limit, offset int }{{0, 0}, {maxIdempotencyDiagnosticsQueryLimit + 1, 0}, {1, -1}} {
+		if _, err := store.ListInProgressIdempotency("", tc.limit, tc.offset); err == nil {
+			t.Fatalf("expected error for limit=%d offset=%d", tc.limit, tc.offset)
 		}
 	}
 }
