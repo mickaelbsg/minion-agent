@@ -16,8 +16,16 @@ type Client struct {
 	Enabled    bool     `json:"enabled"`
 }
 
+type RateLimitConfig struct {
+	IPBurst         int     `json:"ip_burst"`
+	IPRefillPerSec  float64 `json:"ip_refill_per_second"`
+	ClientBurst     int     `json:"client_burst"`
+	ClientRefillSec float64 `json:"client_refill_per_second"`
+}
+
 type SecurityConfig struct {
-	AllowedFail2BanJails []string `json:"allowed_fail2ban_jails"`
+	AllowedFail2BanJails []string        `json:"allowed_fail2ban_jails"`
+	RateLimit            RateLimitConfig `json:"rate_limit"`
 }
 
 type Config struct {
@@ -36,6 +44,7 @@ func Default() *Config {
 	cfg.DBPath = "/opt/minion/minion.db"
 	cfg.Clients = []Client{}
 	cfg.Security.AllowedFail2BanJails = append([]string{}, defaultAllowedFail2BanJails...)
+	applyRateLimitDefaults(&cfg.Security.RateLimit)
 	return cfg
 }
 
@@ -110,5 +119,21 @@ func applyDefaults(cfg *Config) {
 	}
 	if len(cfg.Security.AllowedFail2BanJails) == 0 {
 		cfg.Security.AllowedFail2BanJails = append([]string{}, defaultAllowedFail2BanJails...)
+	}
+	applyRateLimitDefaults(&cfg.Security.RateLimit)
+}
+
+func applyRateLimitDefaults(cfg *RateLimitConfig) {
+	if cfg.IPBurst <= 0 {
+		cfg.IPBurst = 30
+	}
+	if cfg.IPRefillPerSec <= 0 {
+		cfg.IPRefillPerSec = 5
+	}
+	if cfg.ClientBurst <= 0 {
+		cfg.ClientBurst = 60
+	}
+	if cfg.ClientRefillSec <= 0 {
+		cfg.ClientRefillSec = 10
 	}
 }
