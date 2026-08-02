@@ -15,12 +15,15 @@ type IdempotencyDiagnostic struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-func (s *Storage) ListInProgressIdempotency(action string, limit int) ([]IdempotencyDiagnostic, error) {
+func (s *Storage) ListInProgressIdempotency(action string, limit, offset int) ([]IdempotencyDiagnostic, error) {
 	if err := s.ensureIdempotencySchema(); err != nil {
 		return nil, err
 	}
 	if limit < 1 || limit > MaxIdempotencyDiagnosticsLimit {
 		return nil, errors.New("idempotency diagnostics limit must be between 1 and 100")
+	}
+	if offset < 0 {
+		return nil, errors.New("idempotency diagnostics offset must not be negative")
 	}
 
 	query := `SELECT client_name, action, request_id, created_at, updated_at
@@ -31,8 +34,8 @@ func (s *Storage) ListInProgressIdempotency(action string, limit int) ([]Idempot
 		query += ` AND action = ?`
 		args = append(args, action)
 	}
-	query += ` ORDER BY created_at ASC, request_id ASC LIMIT ?`
-	args = append(args, limit)
+	query += ` ORDER BY created_at ASC, request_id ASC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := s.DB.Query(query, args...)
 	if err != nil {
