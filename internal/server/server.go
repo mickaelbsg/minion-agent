@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"minion/internal/agentinfo"
 	"minion/internal/collectors"
@@ -17,12 +20,19 @@ import (
 )
 
 type Server struct {
-	cfg     *config.Config
-	storage *storage.Storage
+	cfg           *config.Config
+	storage       *storage.Storage
+	ipLimiter     *rateLimiter
+	clientLimiter *rateLimiter
 }
 
 func New(cfg *config.Config, storage *storage.Storage) *Server {
-	return &Server{cfg: cfg, storage: storage}
+	return &Server{
+		cfg:           cfg,
+		storage:       storage,
+		ipLimiter:     newRateLimiter(cfg.Security.RateLimit.IPBurst, cfg.Security.RateLimit.IPRefillPerSec),
+		clientLimiter: newRateLimiter(cfg.Security.RateLimit.ClientBurst, cfg.Security.RateLimit.ClientRefillSec),
+	}
 }
 
 func (s *Server) Start() error {
@@ -72,11 +82,30 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
+func remoteHost(remoteAddr string) string {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return remoteAddr
+	}
+	return host
+}
+
+func (s *Server) rejectRateLimited(w http.ResponseWriter, scope string, retry time.Duration) {
+	retrySeconds := int(math.Ceil(retry.Seconds()))
+	if retrySeconds < 1 {
+		retrySeconds = 1
+	}
+	w.Header().Set("Retry-After", strconv.Itoa(retrySeconds))
+	setAuditDetailOnWriter(w, "rate_limit_rejected", "", "scope="+scope)
+	s.writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+}
+
 func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			host = r.RemoteAddr
+		host := remoteHost(r.RemoteAddr)
+		if allowed, retry := s.ipLimiter.allow(host); !allowed {
+			s.rejectRateLimited(w, "ip", retry)
+			return
 		}
 
 		apiKey := r.Header.Get("Authorization")
@@ -99,6 +128,11 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 		authenticated := false
 		for _, c := range clients {
 			if c.Enabled && security.IPAllowed(host, c.AllowedIPs) && security.VerifyAPIKey(apiKey, c.APIKeyHash) {
+				if allowed, retry := s.clientLimiter.allow(c.Name); !allowed {
+					setClientNameOnWriter(w, c.Name)
+					s.rejectRateLimited(w, "client", retry)
+					return
+				}
 				r = withClientName(r, c.Name)
 				setClientNameOnWriter(w, c.Name)
 				authenticated = true
