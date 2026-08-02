@@ -15,10 +15,11 @@ import (
 var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
 
 type bufferedResponseWriter struct {
-	header http.Header
-	status int
-	body   bytes.Buffer
-	parent http.ResponseWriter
+	header      http.Header
+	status      int
+	wroteHeader bool
+	body        bytes.Buffer
+	parent      http.ResponseWriter
 }
 
 func newBufferedResponseWriter(parent http.ResponseWriter) *bufferedResponseWriter {
@@ -28,13 +29,17 @@ func newBufferedResponseWriter(parent http.ResponseWriter) *bufferedResponseWrit
 func (w *bufferedResponseWriter) Header() http.Header { return w.header }
 
 func (w *bufferedResponseWriter) WriteHeader(status int) {
-	if w.status != http.StatusOK || w.body.Len() > 0 {
+	if w.wroteHeader {
 		return
 	}
 	w.status = status
+	w.wroteHeader = true
 }
 
 func (w *bufferedResponseWriter) Write(data []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
 	return w.body.Write(data)
 }
 
@@ -57,6 +62,13 @@ func copyHeaders(dst, src http.Header) {
 func payloadDigest(body []byte) string {
 	sum := sha256.Sum256(bytes.TrimSpace(body))
 	return hex.EncodeToString(sum[:])
+}
+
+func replayBody(status int, body []byte) []byte {
+	if status >= http.StatusBadRequest {
+		return []byte(`{"error":"request failed"}` + "\n")
+	}
+	return append([]byte(nil), body...)
 }
 
 func (s *Server) idempotentAction(action string, next http.HandlerFunc) http.HandlerFunc {
@@ -112,7 +124,7 @@ func (s *Server) idempotentAction(action string, next http.HandlerFunc) http.Han
 
 		buffered := newBufferedResponseWriter(w)
 		next(buffered, r)
-		responseBody := append([]byte(nil), buffered.body.Bytes()...)
+		responseBody := replayBody(buffered.status, buffered.body.Bytes())
 		if err := s.storage.CompleteIdempotency(clientName, action, requestID, buffered.status, responseBody); err != nil {
 			s.writeError(w, http.StatusInternalServerError, "failed to persist request result")
 			return
@@ -121,6 +133,6 @@ func (s *Server) idempotentAction(action string, next http.HandlerFunc) http.Han
 		copyHeaders(w.Header(), buffered.Header())
 		w.Header().Set("X-Request-ID", requestID)
 		w.WriteHeader(buffered.status)
-		_, _ = w.Write(responseBody)
+		_, _ = w.Write(buffered.body.Bytes())
 	}
 }
