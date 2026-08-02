@@ -36,6 +36,8 @@ func New(cfg *config.Config, storage *storage.Storage) *Server {
 }
 
 func (s *Server) Start() error {
+	s.purgeExpiredIdempotency()
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/v1/health", s.audit(s.handleHealth))

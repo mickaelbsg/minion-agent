@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 var ErrIdempotencyPayloadMismatch = errors.New("request id already used with a different payload")
@@ -108,4 +109,23 @@ func (s *Storage) CompleteIdempotency(clientName, action, requestID string, stat
 		return fmt.Errorf("idempotency record not found or already completed")
 	}
 	return nil
+}
+
+func (s *Storage) PurgeCompletedIdempotencyBefore(cutoff time.Time) (int64, error) {
+	if err := s.ensureIdempotencySchema(); err != nil {
+		return 0, err
+	}
+	if cutoff.IsZero() {
+		return 0, errors.New("idempotency retention cutoff must not be zero")
+	}
+
+	result, err := s.DB.Exec(
+		`DELETE FROM idempotency_records
+		WHERE state = ? AND updated_at < ?`,
+		string(IdempotencyCompleted), cutoff.UTC(),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
