@@ -9,6 +9,8 @@ import (
 
 var defaultAllowedFail2BanJails = []string{"sshd", "apache-auth", "recidive"}
 
+const defaultIdempotencyRetentionHours = 168
+
 type Client struct {
 	Name       string   `json:"name"`
 	AllowedIPs []string `json:"allowed_ips"`
@@ -24,8 +26,9 @@ type RateLimitConfig struct {
 }
 
 type SecurityConfig struct {
-	AllowedFail2BanJails []string        `json:"allowed_fail2ban_jails"`
-	RateLimit            RateLimitConfig `json:"rate_limit"`
+	AllowedFail2BanJails      []string        `json:"allowed_fail2ban_jails"`
+	RateLimit                 RateLimitConfig `json:"rate_limit"`
+	IdempotencyRetentionHours int             `json:"idempotency_retention_hours"`
 }
 
 type Config struct {
@@ -44,7 +47,7 @@ func Default() *Config {
 	cfg.DBPath = "/opt/minion/minion.db"
 	cfg.Clients = []Client{}
 	cfg.Security.AllowedFail2BanJails = append([]string{}, defaultAllowedFail2BanJails...)
-	applyRateLimitDefaults(&cfg.Security.RateLimit)
+	applySecurityDefaults(&cfg.Security)
 	return cfg
 }
 
@@ -120,7 +123,14 @@ func applyDefaults(cfg *Config) {
 	if len(cfg.Security.AllowedFail2BanJails) == 0 {
 		cfg.Security.AllowedFail2BanJails = append([]string{}, defaultAllowedFail2BanJails...)
 	}
-	applyRateLimitDefaults(&cfg.Security.RateLimit)
+	applySecurityDefaults(&cfg.Security)
+}
+
+func applySecurityDefaults(cfg *SecurityConfig) {
+	applyRateLimitDefaults(&cfg.RateLimit)
+	if cfg.IdempotencyRetentionHours <= 0 {
+		cfg.IdempotencyRetentionHours = defaultIdempotencyRetentionHours
+	}
 }
 
 func applyRateLimitDefaults(cfg *RateLimitConfig) {
