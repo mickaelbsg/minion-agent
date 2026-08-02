@@ -87,3 +87,33 @@ func TestIdempotentActionRejectsMissingAndReusedRequestID(t *testing.T) {
 		t.Fatalf("handler calls = %d, want 1", calls)
 	}
 }
+
+func TestIdempotentActionDoesNotClaimRequestIDForUnsupportedMethod(t *testing.T) {
+	s := newIdempotencyTestServer(t)
+	calls := 0
+	handler := s.idempotentAction("fail2ban_unban", func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	body := `{"ip":"192.0.2.10","jail":"sshd"}`
+	invalidMethod := idempotencyRequest(body, "req-00000003", "automation")
+	invalidMethod.Method = http.MethodGet
+	invalid := httptest.NewRecorder()
+	handler(invalid, invalidMethod)
+	if invalid.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("invalid method status = %d, want 405; body=%s", invalid.Code, invalid.Body.String())
+	}
+	if got := invalid.Header().Get("Allow"); got != http.MethodPost {
+		t.Fatalf("Allow = %q, want POST", got)
+	}
+
+	valid := httptest.NewRecorder()
+	handler(valid, idempotencyRequest(body, "req-00000003", "automation"))
+	if valid.Code != http.StatusNoContent {
+		t.Fatalf("valid POST status = %d, want 204; body=%s", valid.Code, valid.Body.String())
+	}
+	if calls != 1 {
+		t.Fatalf("handler calls = %d, want 1", calls)
+	}
+}
