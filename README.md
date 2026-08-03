@@ -159,6 +159,8 @@ sudo apt install -y golang build-essential gcc sqlite3 dpkg-dev
 
 O fluxo oficial usa `apt` para instalar um pacote `.deb` local. O projeto não publica atualmente um repositório APT remoto; o arquivo `.deb` precisa ser baixado ou gerado antes da instalação.
 
+A release publicada mais recente é [`v1.1.4`](https://github.com/mickaelbsg/minion-agent/releases/tag/v1.1.4), que inclui o pacote `minion_1.1.4_amd64.deb`.
+
 Gere o pacote localmente, se necessário:
 
 ```bash
