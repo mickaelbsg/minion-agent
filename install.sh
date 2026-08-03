@@ -1,92 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ------------------------------------------------------------
-# Minion Agent development installer for a test machine.
-# Production installs must use the generated .deb with `sudo apt install ./minion_<version>_amd64.deb`.
-# ------------------------------------------------------------
-# This script performs the full installation of the Minion Agent:
-#   1. Installs required system packages (go, fail2ban, iptables, openssl).
-#   2. Builds the Go binary.
-#   3. Generates TLS certificates if they do not exist.
-#   4. Installs the binary to /usr/local/bin/minion.
-#   5. Installs the systemd unit file (runs as root).
-#   6. Enables and starts the service.
-# ------------------------------------------------------------
+usage() {
+  cat >&2 <<'EOF'
+Uso: sudo bash ./install.sh <minion_<versao>_amd64.deb>
 
-# Helper for logging
-log(){ echo "[install] $*"; }
+O pacote Debian é o único artefato oficial de instalação do Minion.
+Este wrapper valida o pacote e usa o APT para instalar o arquivo local com suas dependências.
+EOF
+}
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Ensure we are root (or using sudo for privileged actions)
-if [[ "$EUID" -ne 0 ]]; then
-  log "This installer must be run as root (or via sudo)."
-  exit 1
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 64
 fi
 
-# 1. Install dependencies
-log "Installing required packages..."
-apt-get update -qq
-DEPS="golang-go fail2ban iptables openssl"
-apt-get install -y $DEPS > /dev/null
+package=$1
 
-# 2. Build the binary
-log "Building Minion binary..."
-cd "$SCRIPT_DIR"
-# Ensure Go environment is clean
-export GO111MODULE=on
-go build -o minion ./cmd/minion
-
-# 3. Prepare configuration directory
-log "Setting up configuration directory..."
-mkdir -p /etc/minion
-# Copy example config if not present
-if [[ ! -f /etc/minion/config.json ]]; then
-  cp config.example.json /etc/minion/config.json
-  chmod 600 /etc/minion/config.json
+if [[ ! -f "$package" ]]; then
+  echo "Erro: pacote não encontrado: $package" >&2
+  exit 66
 fi
 
-# 4. Generate TLS certs (self‑signed) if missing
-TLS_DIR="/etc/minion/tls"
-mkdir -p "$TLS_DIR"
-if [[ ! -f "$TLS_DIR/minion.crt" || ! -f "$TLS_DIR/minion.key" ]]; then
-  log "Generating self‑signed TLS certificate..."
-  openssl req -newkey rsa:4096 -nodes -keyout "$TLS_DIR/minion.key" \
-    -x509 -days 3650 -out "$TLS_DIR/minion.crt" \
-    -subj "/C=BR/ST=DF/L=Brasilia/O=Minion/OU=Test/CN=minion.local"
-  chmod 600 "$TLS_DIR/minion.key"
-  chmod 644 "$TLS_DIR/minion.crt"
+if [[ "$package" != *.deb ]]; then
+  echo "Erro: o arquivo informado não possui extensão .deb" >&2
+  exit 65
 fi
 
-# 5. Install binary
-log "Installing binary to /usr/local/bin/minion"
-cp minion /usr/local/bin/minion
-chmod 755 /usr/local/bin/minion
+if ! command -v dpkg-deb >/dev/null 2>&1 || ! command -v apt-get >/dev/null 2>&1; then
+  echo "Erro: dpkg-deb e apt-get são obrigatórios." >&2
+  exit 69
+fi
 
-# 6. Install systemd unit (runs as root)
-log "Installing systemd unit file..."
-cat > /etc/systemd/system/minion.service <<'EOF_UNIT'
-[Unit]
-Description=Minion Agent Service
-After=network.target
+package_name=$(dpkg-deb -f "$package" Package 2>/dev/null || true)
+architecture=$(dpkg-deb -f "$package" Architecture 2>/dev/null || true)
 
-[Service]
-ExecStart=/usr/local/bin/minion --config /etc/minion/config.json
-Restart=on-failure
-# No User= line – runs as root for full Fail2Ban access
-Environment=HOME=/root
+if [[ "$package_name" != "minion" ]]; then
+  echo "Erro: o arquivo não é um pacote oficial do Minion (Package: minion)." >&2
+  exit 65
+fi
 
-[Install]
-WantedBy=multi-user.target
-EOF_UNIT
+if [[ "$architecture" != "amd64" ]]; then
+  echo "Erro: arquitetura não suportada pelo pacote atual: ${architecture:-desconhecida}. Esperado: amd64." >&2
+  exit 65
+fi
 
-# Reload systemd, enable and start service
-log "Reloading systemd daemon..."
-systemctl daemon-reload
-log "Enabling and starting Minion service..."
-systemctl enable --now minion.service
+if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+  echo "Erro: execute com sudo para instalar o pacote Debian." >&2
+  exit 77
+fi
 
-log "Installation complete!"
-log "Check status with: systemctl status minion.service"
-log "Health endpoint: https://localhost:9870/api/v1/health"
+package=$(readlink -f -- "$package")
+echo "Instalando o pacote oficial do Minion e resolvendo dependências: $package"
+exec apt-get install -y -- "$package"

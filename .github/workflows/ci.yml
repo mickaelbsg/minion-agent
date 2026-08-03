@@ -33,6 +33,40 @@ jobs:
       - name: Build
         run: go build ./cmd/minion
 
+      - name: Validate official Debian installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n install.sh
+
+          if bash ./install.sh >/tmp/minion-install.out 2>/tmp/minion-install.err; then
+            echo "install.sh accepted execution without a package" >&2
+            exit 1
+          fi
+          grep -Fq 'O pacote Debian é o único artefato oficial' /tmp/minion-install.err || {
+            echo "install.sh did not print the official-package usage message" >&2
+            cat /tmp/minion-install.err >&2
+            exit 1
+          }
+
+          touch /tmp/not-a-package.txt
+          if bash ./install.sh /tmp/not-a-package.txt >/tmp/minion-install.out 2>/tmp/minion-install.err; then
+            echo "install.sh accepted a non-.deb file" >&2
+            exit 1
+          fi
+          grep -Fq 'não possui extensão .deb' /tmp/minion-install.err || {
+            echo "install.sh did not reject the non-.deb file as expected" >&2
+            cat /tmp/minion-install.err >&2
+            exit 1
+          }
+
+          if grep -Eq 'go build|openssl req|systemctl enable|/etc/systemd/system' install.sh; then
+            echo "install.sh reintroduced legacy installation behavior" >&2
+            exit 1
+          fi
+          grep -Fq 'dpkg-deb -f' install.sh
+          grep -Fq 'exec apt-get install -y --' install.sh
+
       - name: Build Debian packages
         shell: bash
         run: |
