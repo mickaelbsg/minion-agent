@@ -55,13 +55,33 @@ sudo dpkg -i minion_<nova-versao>_amd64.deb
 
 O pacote preserva `/etc/minion/config.json`, TLS, banco SQLite e clientes. Antes do upgrade, cria um snapshot root-only e tenta restaurar o estado anterior caso o novo serviço não configure ou inicie corretamente.
 
-## Remoção
+## Remoção preservando dados
+
+Use a remoção normal quando pretende reinstalar o agente ou interromper seu uso sem perder identidade, configuração, certificados e clientes:
 
 ```bash
 sudo dpkg -r minion
 ```
 
-A remoção desativa o serviço e remove os arquivos pertencentes ao pacote. Configuração e dados persistentes não devem ser apagados por padrão.
+Esse comando para e desabilita o serviço, remove o binário e a unit pertencentes ao pacote, mas preserva:
+
+- `/etc/minion`;
+- `/opt/minion`;
+- `/var/lib/minion`.
+
+Uma instalação posterior do pacote reutiliza esse estado e não deve recriar a credencial bootstrap nem invalidar as API keys existentes.
+
+## Purge destrutivo
+
+Use purge somente quando deseja remover deliberadamente todo o estado local do Minion:
+
+```bash
+sudo dpkg --purge minion
+```
+
+Esse comando apaga configuração, certificados TLS, banco SQLite, clientes, credencial bootstrap, snapshots de upgrade e demais arquivos em `/etc/minion`, `/opt/minion` e `/var/lib/minion`.
+
+O purge é irreversível sem backup. Não o utilize para upgrade, reinstalação ou correção temporária do serviço.
 
 ## Diagnóstico de falha
 
