@@ -241,6 +241,24 @@ exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 
+cat > "$DEB_ROOT/DEBIAN/postrm" <<'EOS'
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+  systemctl stop minion.service >/dev/null 2>&1 || true
+  systemctl disable minion.service >/dev/null 2>&1 || true
+
+  rm -rf -- /etc/minion /opt/minion /var/lib/minion
+
+  systemctl daemon-reload >/dev/null 2>&1 || true
+  systemctl reset-failed minion.service >/dev/null 2>&1 || true
+fi
+
+exit 0
+EOS
+chmod 755 "$DEB_ROOT/DEBIAN/postrm"
+
 if [[ -z "$MINION_BINARY" ]]; then
   MINION_BINARY="$BUILD_ROOT/minion"
   echo "Compiling minion binary..."

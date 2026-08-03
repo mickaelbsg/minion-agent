@@ -43,7 +43,7 @@ assert_dependency() {
 }
 
 cleanup() {
-  sudo dpkg --remove minion >/dev/null 2>&1 || true
+  sudo dpkg --purge minion >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -147,13 +147,36 @@ if [[ -n "$BROKEN_PACKAGE" ]]; then
     https://127.0.0.1:9870/api/v1/heartbeat >/dev/null || \
     fail "previous API key no longer authenticates after rollback"
 fi
-unset clients_before
 
 sudo dpkg --remove minion
-sudo test -f "$CONFIG" || fail "package removal deleted configuration"
-sudo test -f "$DB" || fail "package removal deleted database"
-sudo test -f "$CERT" || fail "package removal deleted TLS certificate"
-sudo test -f "$KEY" || fail "package removal deleted TLS private key"
+sudo systemctl is-active --quiet "$SERVICE" && fail "service remained active after package removal"
+for path in "$CONFIG" "$DB" "$CERT" "$KEY"; do
+  sudo test -f "$path" || fail "package removal deleted persistent file: $path"
+done
+[[ "$(sudo sha256sum "$CONFIG" | awk '{print $1}')" == "$config_hash" ]] || fail "package removal changed configuration"
+[[ "$(sudo sha256sum "$CERT" | awk '{print $1}')" == "$cert_hash" ]] || fail "package removal changed TLS certificate"
+[[ "$(sudo sha256sum "$KEY" | awk '{print $1}')" == "$key_hash" ]] || fail "package removal changed TLS private key"
+[[ "$(client_fingerprint)" == "$clients_before" ]] || fail "package removal changed persisted API clients"
 
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$UPGRADE_PACKAGE"
+sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after reinstall following removal"
+sudo test ! -e "$BOOTSTRAP" || fail "reinstall after removal recreated bootstrap credentials"
+[[ "$(sudo sha256sum "$CONFIG" | awk '{print $1}')" == "$config_hash" ]] || fail "reinstall after removal changed configuration"
+[[ "$(sudo sha256sum "$CERT" | awk '{print $1}')" == "$cert_hash" ]] || fail "reinstall after removal changed TLS certificate"
+[[ "$(sudo sha256sum "$KEY" | awk '{print $1}')" == "$key_hash" ]] || fail "reinstall after removal changed TLS private key"
+[[ "$(client_fingerprint)" == "$clients_before" ]] || fail "reinstall after removal changed persisted API clients"
+
+curl --silent --show-error --fail --insecure \
+  -H "Authorization: Bearer $api_key" \
+  https://127.0.0.1:9870/api/v1/heartbeat >/dev/null || \
+  fail "previous API key no longer authenticates after reinstall"
+
+sudo dpkg --purge minion
+for path in /etc/minion /opt/minion /var/lib/minion; do
+  sudo test ! -e "$path" || fail "package purge retained persistent path: $path"
+done
+sudo test ! -e /lib/systemd/system/minion.service || fail "package purge retained packaged systemd unit"
+
+unset clients_before api_key
 trap - EXIT
-echo "Debian package install, upgrade, rollback and removal lifecycle validated successfully."
+echo "Debian package install, upgrade, rollback, removal, reinstall and purge lifecycle validated successfully."
