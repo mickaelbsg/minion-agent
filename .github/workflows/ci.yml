@@ -112,6 +112,13 @@ jobs:
           grep -q 'STATE_DIR="/var/lib/minion"' "$control/postinst"
           grep -q 'bootstrap-credentials.txt' "$control/postinst"
           grep -q 'sudo minion bootstrap pair' "$control/postinst"
+          grep -q 'display_host=$(hostname -I' "$control/postinst"
+          grep -q 'Service: active (minion.service)' "$control/postinst"
+          grep -q 'Bootstrap credential (root-only):' "$control/postinst"
+          if grep -Eq 'cat[[:space:]]+.*BOOTSTRAP_FILE|grep[[:space:]].*minion_sk_' "$control/postinst"; then
+            echo "postinst may expose bootstrap API key in package output" >&2
+            exit 1
+          fi
           grep -q '\[ "$1" = "purge" \]' "$control/postrm"
           grep -q 'rm -rf -- /etc/minion /opt/minion /var/lib/minion' "$control/postrm"
           grep -a -q 'Bootstrap paired for' "$root/usr/local/bin/minion"
