@@ -76,6 +76,9 @@ sudo rm -rf /etc/minion /opt/minion /var/lib/minion
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$INSTALL_PACKAGE"
 [[ "$(dpkg-query -W -f='${Version}' minion)" == "$install_version" ]] || fail "unexpected installed package version"
 sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after installation"
+fragment_path="$(sudo systemctl show -p FragmentPath --value "$SERVICE")"
+expected_fragment_path="$(sudo readlink -f /lib/systemd/system/minion.service)"
+[[ "$fragment_path" == "$expected_fragment_path" ]] || fail "service is using unexpected unit: $fragment_path"
 
 for path in "$CONFIG" "$DB" "$CERT" "$KEY" "$BOOTSTRAP"; do
   sudo test -f "$path" || fail "missing file after installation: $path"

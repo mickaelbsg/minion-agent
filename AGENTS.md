@@ -45,3 +45,9 @@
 
 - Before declaring work complete, run the focused tests, `go test ./...`, `golangci-lint run`, and the relevant build. For packaging changes, also run package inspection and the Debian lifecycle harness when the environment supports systemd.
 - Keep operational documentation aligned with executable scripts and CI. When they conflict, trust the script/configuration and update stale prose rather than encoding the conflict here.
+
+## Skills And Troubleshooting
+
+- Before starting any task, check whether an available skill matches the work; load and follow the applicable skill instead of improvising a parallel workflow.
+- Always update `docs/troubleshooting.md` when diagnosing or fixing a reproducible problem. Record the symptom, root cause, correction, diagnostic commands, and verification result so it becomes the project's operational solution base.
+- Record durable technical lessons in `docs/memory/` without secrets, transient logs, or unverified assumptions.

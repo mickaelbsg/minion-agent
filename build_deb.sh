@@ -26,7 +26,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
-Depends: libc6 (>= 2.28), iptables, fail2ban, openssl, sqlite3
+Depends: libc6 (>= 2.28), iptables, fail2ban, openssl, sqlite3, curl
 Description: Minion Agent - lightweight Linux observability agent and API server.
  Minion gathers host information and exposes an authenticated HTTPS API.
 EOF
@@ -150,6 +150,16 @@ require_command openssl
 require_command iptables
 require_command fail2ban-client
 require_command sqlite3
+require_command curl
+
+PACKAGED_UNIT="/lib/systemd/system/minion.service"
+LEGACY_UNIT="/etc/systemd/system/minion.service"
+LEGACY_UNIT_BACKUP="$STATE_DIR/legacy-systemd-minion.service"
+if [ -f "$PACKAGED_UNIT" ] && [ -f "$LEGACY_UNIT" ] && [ ! -L "$LEGACY_UNIT" ]; then
+  cp -a "$LEGACY_UNIT" "$LEGACY_UNIT_BACKUP"
+  rm -f "$LEGACY_UNIT"
+  echo "Replaced legacy /etc/systemd/system/minion.service with the packaged unit."
+fi
 
 systemctl daemon-reload
 systemctl reset-failed minion.service >/dev/null 2>&1 || true
@@ -181,6 +191,20 @@ fi
 
 if ! systemctl is-active --quiet minion.service; then
   echo "Minion service failed to start. Run: journalctl -u minion.service -n 100" >&2
+  exit 1
+fi
+
+ready=false
+for _ in $(seq 1 30); do
+  if curl --silent --show-error --fail --insecure --max-time 2 \
+    https://127.0.0.1:9870/api/v1/health >/dev/null; then
+    ready=true
+    break
+  fi
+  sleep 1
+done
+if [ "$ready" != true ]; then
+  echo "Minion API failed readiness validation. Run: journalctl -u minion.service -n 100" >&2
   exit 1
 fi
 

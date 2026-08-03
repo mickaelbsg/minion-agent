@@ -1,0 +1,92 @@
+# Troubleshooting
+
+## Instalação
+
+O fluxo suportado é instalar um `.deb` local com `apt`:
+
+```bash
+sudo apt install ./minion_<versao>_amd64.deb
+```
+
+Não use `dpkg -i` como fluxo normal: ele não resolve as dependências declaradas pelo pacote. O projeto não publica atualmente um repositório APT remoto, portanto `apt install minion` não é um comando válido para este produto.
+
+O pacote instala automaticamente as dependências, cria configuração, TLS, SQLite, bootstrap e serviço `systemd`. Se a instalação falhar, preserve a saída do `apt` e consulte:
+
+```bash
+sudo systemctl status minion.service --no-pager -l
+sudo journalctl -u minion.service -n 100 --no-pager
+sudo dpkg-query -W -f='${Status} ${Version}\n' minion
+```
+
+## Serviço ativo, API indisponível
+
+O instalador valida `/api/v1/health` antes de concluir. Depois da instalação, confirme:
+
+```bash
+sudo systemctl is-active minion.service
+curl --silent --show-error --fail --insecure https://127.0.0.1:9870/api/v1/health
+```
+
+Se o serviço estiver ativo mas a API não responder, verifique o journal, a porta e os arquivos TLS:
+
+```bash
+sudo ss -ltnp | grep ':9870'
+sudo stat -c '%a %U:%G %n' /etc/minion/tls/minion.crt /etc/minion/tls/minion.key
+sudo journalctl -u minion.service -n 100 --no-pager
+```
+
+TLS permanece obrigatório por padrão. `api.allow_insecure_http=true` é somente um fallback explícito para desenvolvimento.
+
+## Unit systemd antiga
+
+Uma instalação manual antiga em `/etc/systemd/system/minion.service` pode ter precedência sobre a unit empacotada. O `postinst` atual detecta essa unit regular, arquiva-a em:
+
+```text
+/var/lib/minion/legacy-systemd-minion.service
+```
+
+e ativa a unit oficial do pacote. O cliente não deve remover a unit manualmente. Para confirmar a unit efetivamente carregada:
+
+```bash
+systemctl show -p FragmentPath --value minion.service
+readlink -f /lib/systemd/system/minion.service
+```
+
+Os caminhos resolvidos devem coincidir.
+
+## Bootstrap e autenticação
+
+Após uma instalação nova, a credencial fica em arquivo root-only e pode ser consumida uma vez:
+
+```bash
+sudo minion bootstrap pair --ips <AUTOMATION_IP/32>
+```
+
+Se o arquivo já não existir, ele foi consumido ou já havia clientes persistidos. Crie um cliente explicitamente:
+
+```bash
+sudo minion client create --name automation --ips <AUTOMATION_IP/32>
+```
+
+Clientes autenticados precisam de API key válida, cliente ativo e IP/CIDR autorizado. Não procure a API key em logs: somente o hash é persistido.
+
+## Upgrade, rollback e remoção
+
+Use o harness completo em um host Debian/Ubuntu com `systemd` como PID 1:
+
+```bash
+bash scripts/test-deb-lifecycle.sh <install.deb> <upgrade.deb> [broken.deb]
+```
+
+Ele valida instalação, permissões, bootstrap, API, upgrade, rollback e remoção. Upgrades preservam configuração, banco, TLS e clientes; remoção não apaga esses dados por padrão.
+
+## WSL
+
+O teste de lifecycle requer WSL com `systemd` habilitado e executando como PID 1, além de `sudo`, `apt`, `dpkg`, `sqlite3` e `curl`:
+
+```bash
+ps -p 1 -o comm=
+systemctl is-system-running
+```
+
+O resultado esperado do primeiro comando é `systemd`.

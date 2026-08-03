@@ -2,10 +2,16 @@
 
 ## Fluxo oficial
 
-O pacote deve ser instalado com `apt`, não com `dpkg -i` diretamente:
+O fluxo oficial é `apt` instalando um `.deb` local. O projeto ainda não publica um repositório APT remoto; o arquivo deve estar disponível na máquina ou ser gerado antes:
 
 ```bash
-sudo apt install ./minion_<versao>_amd64.deb
+PKG_VER=1.0.5 ./build_deb.sh
+```
+
+Instale com `apt`, não com `dpkg -i` diretamente:
+
+```bash
+sudo apt install ./minion_1.0.5_amd64.deb
 ```
 
 O `apt` resolve as dependências declaradas antes de executar o `postinst`. O usuário não precisa instalar `fail2ban`, `iptables`, `openssl` ou `sqlite3` separadamente.
@@ -21,7 +27,8 @@ Após a instalação, o `postinst` deve:
 - criar o cliente bootstrap somente quando o banco ainda não possui clientes;
 - salvar a credencial em `/var/lib/minion/bootstrap-credentials.txt` com modo `0600`;
 - habilitar e iniciar `minion.service`;
-- validar que o serviço está ativo;
+- substituir automaticamente uma unit antiga em `/etc/systemd/system/minion.service`, arquivando-a em `/var/lib/minion/legacy-systemd-minion.service`;
+- validar que o serviço está ativo e que `/api/v1/health` aceita conexões antes de concluir o `postinst`;
 - informar endereço HTTPS, `agent_id` e caminho da credencial bootstrap sem imprimir a API key.
 
 ## Comandos de validação
@@ -48,4 +55,4 @@ Executar novamente `apt install ./minion_<versao>_amd64.deb` não deve recriar c
 
 ## Limite do comando `dpkg -i`
 
-`dpkg -i` não resolve dependências. Se for usado diretamente em uma máquina sem os pacotes requeridos, ele deixa o pacote desembrulhado, mas não configurado. Por isso, `apt install ./package.deb` é o comando oficial e testado.
+`dpkg -i` não resolve dependências. Se for usado diretamente em uma máquina sem os pacotes requeridos, ele deixa o pacote desembrulhado, mas não configurado. Por isso, `apt install ./package.deb` é o comando oficial e testado. `apt install minion` sem o caminho `./` não faz parte do fluxo atual, pois não há repositório APT remoto publicado.

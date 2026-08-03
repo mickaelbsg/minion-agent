@@ -157,13 +157,21 @@ sudo apt install -y golang build-essential gcc sqlite3 dpkg-dev
 
 ## 8. Instalação via pacote `.deb`
 
-Baixe ou gere o pacote `.deb`.
+O fluxo oficial usa `apt` para instalar um pacote `.deb` local. O projeto não publica atualmente um repositório APT remoto; o arquivo `.deb` precisa ser baixado ou gerado antes da instalação.
 
-Instale com `apt`, que resolve automaticamente as dependências declaradas pelo pacote e só executa o bootstrap depois que elas estiverem disponíveis:
+Gere o pacote localmente, se necessário:
 
 ```bash
-sudo apt install ./minion_<versao>_amd64.deb
+PKG_VER=1.0.5 ./build_deb.sh
 ```
+
+Instale o arquivo local com `apt`, que resolve automaticamente as dependências declaradas pelo pacote e só executa o bootstrap depois que elas estiverem disponíveis:
+
+```bash
+sudo apt install ./minion_1.0.5_amd64.deb
+```
+
+Não use `apt install minion` esperando um pacote vindo de um repositório remoto. Também não use `dpkg -i` como fluxo normal, porque ele não resolve dependências.
 
 Verifique o serviço:
 
@@ -171,17 +179,7 @@ Verifique o serviço:
 sudo systemctl status minion
 ```
 
-A unit carregada deve vir de `/lib/systemd/system/minion.service` quando instalada via pacote. Se existir uma unit antiga em `/etc/systemd/system/minion.service`, ela tem prioridade sobre a unit do pacote e pode causar falhas como `status=217/USER`.
-
-Correção para unit antiga:
-
-```bash
-sudo systemctl stop minion || true
-sudo rm -f /etc/systemd/system/minion.service
-sudo systemctl daemon-reload
-sudo systemctl reset-failed minion
-sudo systemctl restart minion
-```
+A unit carregada deve ser a unit empacotada em `/lib/systemd/system/minion.service` (ou no caminho real equivalente da distribuição). Durante a instalação, uma unit antiga em `/etc/systemd/system/minion.service` é arquivada em `/var/lib/minion/legacy-systemd-minion.service` e substituída automaticamente pela unit oficial; não é necessário removê-la manualmente.
 
 Acompanhe logs:
 
@@ -821,6 +819,7 @@ Próximos passos recomendados:
 
 ## 20. Documentos relacionados
 
+- `docs/troubleshooting.md`
 - `ADR.md`
 - `SPEC.md`
 - `docs/adr/ADR-011-principio-privilegio-minimo.md`
