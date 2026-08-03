@@ -5,10 +5,10 @@ O pacote `.deb` é o único artefato oficial de instalação, upgrade e remoçã
 ## Instalação recomendada em host limpo
 
 ```bash
-sudo ./install.sh ./minion_<versao>_amd64.deb
+sudo bash ./install.sh ./minion_<versao>_amd64.deb
 ```
 
-O wrapper valida o nome e a arquitetura do pacote e usa o APT para instalar o arquivo local junto com as dependências declaradas pelo pacote. Ele não instala Go, não compila código, não cria certificados e não grava uma unit systemd própria.
+O wrapper valida o nome e a arquitetura do pacote e usa o APT para instalar o arquivo local junto com as dependências declaradas pelo pacote. A chamada explícita por `bash` funciona mesmo quando o arquivo foi obtido sem preservar o bit executável. Ele não instala Go, não compila código, não cria certificados e não grava uma unit systemd própria.
 
 ## Instalação direta com dpkg
 
@@ -44,7 +44,7 @@ O arquivo é root-only. Use o comando indicado pelo pós-instalação para parea
 ## Upgrade
 
 ```bash
-sudo ./install.sh ./minion_<nova-versao>_amd64.deb
+sudo bash ./install.sh ./minion_<nova-versao>_amd64.deb
 ```
 
 Ou, quando as dependências já estiverem satisfeitas:
