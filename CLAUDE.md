@@ -32,7 +32,7 @@ The Minion is the local hand inside Linux servers. Automation/n8n is the control
 The product must be easy to sell and easy for a customer to operate. The default installation target is a single command:
 
 ```bash
-sudo dpkg -i minion-agent_<version>_amd64.deb
+sudo apt install ./minion-agent_<version>_amd64.deb
 ```
 
 After this command, the agent must be installed, securely configured, running, and ready to connect to Automation without requiring compilation, manual file copying, a separate `minion setup`, or manual JSON editing.
@@ -46,7 +46,7 @@ Current priority order is mandatory:
 5. advanced Automation/n8n integration;
 6. controlled administrative actions.
 
-Do not prioritize unrelated features while the official `dpkg -i` flow remains incomplete.
+Do not prioritize unrelated features while the official `apt install ./package.deb` flow remains incomplete.
 
 Every maintenance cycle must produce perceptible product value. Do not spend an entire cycle only on formatting, lint, Dependabot, cosmetic refactors, or isolated documentation unless a concrete security or implementation blocker requires it.
 

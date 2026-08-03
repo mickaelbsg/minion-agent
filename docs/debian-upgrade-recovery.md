@@ -7,7 +7,7 @@ O pacote Debian do Minion protege automaticamente o estado operacional existente
 O operador continua usando somente:
 
 ```bash
-sudo dpkg -i minion_<versao>_amd64.deb
+sudo apt install ./minion_<versao>_amd64.deb
 ```
 
 Quando o `dpkg` identifica um upgrade, o `preinst` interrompe temporariamente o serviço e cria um snapshot root-only em:
@@ -54,7 +54,7 @@ sudo dpkg --audit
 Depois de corrigir ou substituir o pacote defeituoso, execute novamente:
 
 ```bash
-sudo dpkg -i minion_<versao_corrigida>_amd64.deb
+sudo apt install ./minion_<versao_corrigida>_amd64.deb
 ```
 
 ## Snapshot mantido após falha

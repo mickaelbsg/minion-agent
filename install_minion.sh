@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # ------------------------------------------------------------
-# Minion Agent minimal installer (test machine)
+# Minion Agent minimal development installer (test machine).
+# Production installs must use the generated .deb with `sudo apt install ./minion_<version>_amd64.deb`.
 # ------------------------------------------------------------
 # This script assumes the host already has all required dependencies:
 #   - Go toolchain (go >= 1.22)

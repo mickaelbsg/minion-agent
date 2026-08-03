@@ -35,6 +35,13 @@ package_version() {
   dpkg-deb -f "$1" Version
 }
 
+assert_dependency() {
+  local package="$1"
+  local dependency="$2"
+  dpkg-deb -f "$package" Depends | tr ',' '\n' | grep -Eq "^[[:space:]]*${dependency}([[:space:](]|$)" || \
+    fail "$package does not declare $dependency as a package dependency"
+}
+
 cleanup() {
   sudo dpkg --remove minion >/dev/null 2>&1 || true
 }
@@ -45,6 +52,10 @@ trap cleanup EXIT
 [[ -z "$BROKEN_PACKAGE" || -f "$BROKEN_PACKAGE" ]] || fail "broken package not found: $BROKEN_PACKAGE"
 command -v systemctl >/dev/null || fail "systemctl is unavailable"
 [[ "$(ps -p 1 -o comm=)" == "systemd" ]] || fail "test host is not running systemd as PID 1"
+command -v curl >/dev/null || fail "curl is required by the test harness"
+
+assert_dependency "$INSTALL_PACKAGE" "fail2ban"
+assert_dependency "$INSTALL_PACKAGE" "sqlite3"
 
 install_version="$(package_version "$INSTALL_PACKAGE")"
 upgrade_version="$(package_version "$UPGRADE_PACKAGE")"
@@ -58,14 +69,11 @@ if [[ -n "$BROKEN_PACKAGE" ]]; then
     fail "broken package version $broken_version must be newer than $upgrade_version"
 fi
 
-sudo apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables fail2ban openssl sqlite3 curl >/dev/null
-
 # Ensure a previous failed run cannot influence the fresh-install assertions.
-sudo dpkg --remove minion >/dev/null 2>&1 || true
+sudo dpkg --purge minion >/dev/null 2>&1 || true
 sudo rm -rf /etc/minion /opt/minion /var/lib/minion
 
-sudo dpkg -i "$INSTALL_PACKAGE"
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$INSTALL_PACKAGE"
 [[ "$(dpkg-query -W -f='${Version}' minion)" == "$install_version" ]] || fail "unexpected installed package version"
 sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after installation"
 
@@ -81,7 +89,6 @@ assert_mode "$BOOTSTRAP" 600
 pair_output="$(sudo /usr/local/bin/minion bootstrap pair --config "$CONFIG" --ips 127.0.0.1/32)"
 api_key="$(printf '%s\n' "$pair_output" | sed -n 's/^API Key: //p' | head -n 1)"
 [[ "$api_key" == minion_sk_* ]] || fail "bootstrap pair did not return a valid API key"
-echo "::add-mask::$api_key"
 unset pair_output
 sudo test ! -e "$BOOTSTRAP" || fail "bootstrap credential file was not removed after pairing"
 
@@ -90,13 +97,17 @@ response="$(curl --silent --show-error --fail --insecure \
   https://127.0.0.1:9870/api/v1/agent)"
 printf '%s' "$response" | grep -q '"agent_id"' || fail "authenticated agent endpoint returned an unexpected response"
 
+if sudo journalctl -u "$SERVICE" --no-pager 2>/dev/null | grep -Fq "$api_key"; then
+  fail "bootstrap API key was written to the service journal"
+fi
+
 config_hash="$(sudo sha256sum "$CONFIG" | awk '{print $1}')"
 cert_hash="$(sudo sha256sum "$CERT" | awk '{print $1}')"
 key_hash="$(sudo sha256sum "$KEY" | awk '{print $1}')"
 clients_before="$(client_fingerprint)"
 [[ -n "$clients_before" ]] || fail "no persisted API client found before package transition"
 
-sudo dpkg -i "$UPGRADE_PACKAGE"
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$UPGRADE_PACKAGE"
 [[ "$(dpkg-query -W -f='${Version}' minion)" == "$upgrade_version" ]] || fail "package was not upgraded to $upgrade_version"
 sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after package upgrade"
 sudo test ! -e "$BOOTSTRAP" || fail "package upgrade recreated bootstrap credentials"
@@ -114,7 +125,7 @@ curl --silent --show-error --fail --insecure \
 if [[ -n "$BROKEN_PACKAGE" ]]; then
   binary_hash="$(sudo sha256sum "$BINARY" | awk '{print $1}')"
 
-  if sudo dpkg -i "$BROKEN_PACKAGE"; then
+  if sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$BROKEN_PACKAGE"; then
     fail "intentionally broken package unexpectedly installed successfully"
   fi
 

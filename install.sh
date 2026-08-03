@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # ------------------------------------------------------------
-# Minion Agent installer for a test machine
+# Minion Agent development installer for a test machine.
+# Production installs must use the generated .deb with `sudo apt install ./minion_<version>_amd64.deb`.
 # ------------------------------------------------------------
 # This script performs the full installation of the Minion Agent:
 #   1. Installs required system packages (go, fail2ban, iptables, openssl).

@@ -7,7 +7,7 @@ PKG_VER="${PKG_VER:-1.0.4}"
 ARCH="amd64"
 BUILD_ROOT="$(mktemp -d)"
 DEB_ROOT="$BUILD_ROOT/${PKG_NAME}_${PKG_VER}_${ARCH}"
-MINION_BINARY="${MINION_BINARY:-$(pwd)/minion}"
+MINION_BINARY="${MINION_BINARY:-}"
 
 trap 'rm -rf "$BUILD_ROOT"' EXIT
 
@@ -120,7 +120,36 @@ on_exit() {
 trap on_exit EXIT
 
 install -d -o root -g root -m 700 /etc/minion "$TLS_DIR" "$DATA_DIR" "$STATE_DIR"
+if [ ! -f "$CONFIG" ]; then
+  cat > "$CONFIG" <<'EOF_CONFIG'
+{
+  "api": {
+    "bind": "0.0.0.0:9870",
+    "allow_insecure_http": false
+  },
+  "security": {
+    "allowed_fail2ban_jails": ["sshd", "apache-auth", "recidive"]
+  },
+  "db_path": "/opt/minion/minion.db",
+  "clients": []
+}
+EOF_CONFIG
+fi
 chmod 600 "$CONFIG"
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "Minion installation is missing required command: $1" >&2
+    echo "Install the package with 'sudo apt install ./minion_<version>_amd64.deb' so dependencies are resolved automatically." >&2
+    exit 1
+  }
+}
+
+require_command systemctl
+require_command openssl
+require_command iptables
+require_command fail2ban-client
+require_command sqlite3
 
 systemctl daemon-reload
 systemctl reset-failed minion.service >/dev/null 2>&1 || true
@@ -146,19 +175,30 @@ chmod 700 /etc/minion "$TLS_DIR" "$DATA_DIR" "$STATE_DIR"
 [ ! -f "$DATA_DIR/minion.db" ] || chmod 600 "$DATA_DIR/minion.db"
 
 systemctl enable minion.service >/dev/null
-systemctl restart minion.service
+if ! systemctl is-active --quiet minion.service; then
+  systemctl start minion.service
+fi
 
 if ! systemctl is-active --quiet minion.service; then
   echo "Minion service failed to start. Run: journalctl -u minion.service -n 100" >&2
   exit 1
 fi
 
+bind_address=$(sed -n 's/^[[:space:]]*"bind"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$CONFIG" | head -n 1)
+machine_id=$(cat /etc/machine-id 2>/dev/null || true)
+if [ -z "$machine_id" ]; then
+  machine_id=$(hostname 2>/dev/null || printf 'unknown')
+fi
+agent_id="minion_$(printf 'minion-agent:%s' "$machine_id" | sha256sum | cut -c1-32)"
+
 rm -rf "$BACKUP_DIR"
 trap - EXIT
 
 echo "Minion installed and running."
 echo "Status: systemctl status minion.service"
-echo "Health: https://127.0.0.1:9870/api/v1/health"
+echo "Address: https://${bind_address:-0.0.0.0:9870}"
+echo "Agent ID: $agent_id"
+echo "Bootstrap credential: $BOOTSTRAP_FILE"
 if [ -f "$BOOTSTRAP_FILE" ]; then
   echo "Next step: run 'sudo minion bootstrap pair --ips <AUTOMATION_IP/32>' to authorize Automation and display the initial API key once."
 fi
@@ -177,7 +217,11 @@ exit 0
 EOS
 chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 
-if [[ ! -f "$MINION_BINARY" ]]; then
+if [[ -z "$MINION_BINARY" ]]; then
+  MINION_BINARY="$BUILD_ROOT/minion"
+  echo "Compiling minion binary..."
+  go build -o "$MINION_BINARY" ./cmd/minion
+elif [[ ! -f "$MINION_BINARY" ]]; then
   echo "Compiling minion binary..."
   go build -o "$MINION_BINARY" ./cmd/minion
 fi

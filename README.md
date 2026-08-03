@@ -159,16 +159,10 @@ sudo apt install -y golang build-essential gcc sqlite3 dpkg-dev
 
 Baixe ou gere o pacote `.deb`.
 
-Instale com:
+Instale com `apt`, que resolve automaticamente as dependências declaradas pelo pacote e só executa o bootstrap depois que elas estiverem disponíveis:
 
 ```bash
-sudo dpkg -i minion_1.0.0_amd64.deb
-```
-
-Se houver dependência pendente:
-
-```bash
-sudo apt-get install -f
+sudo apt install ./minion_<versao>_amd64.deb
 ```
 
 Verifique o serviço:
@@ -702,13 +696,13 @@ packaging/minion.deb
 Renomeie com versão e arquitetura, se desejar:
 
 ```bash
-mv packaging/minion.deb minion_1.0.0_amd64.deb
+mv packaging/minion.deb minion_<versao>_amd64.deb
 ```
 
 Instale localmente:
 
 ```bash
-sudo dpkg -i minion_1.0.0_amd64.deb
+sudo apt install ./minion_<versao>_amd64.deb
 ```
 
 Recarregue systemd:
@@ -742,7 +736,7 @@ dpkg-deb --build packaging/minion
 Instale por cima:
 
 ```bash
-sudo dpkg -i packaging/minion.deb
+sudo apt install ./packaging/minion.deb
 sudo systemctl restart minion
 ```
 

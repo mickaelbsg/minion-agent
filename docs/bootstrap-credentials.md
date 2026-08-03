@@ -3,7 +3,7 @@
 Depois da instalação do pacote:
 
 ```bash
-sudo dpkg -i minion_1.0.4_amd64.deb
+sudo apt install ./minion_<versao>_amd64.deb
 ```
 
 O Minion cria automaticamente o primeiro cliente, inicializa TLS e SQLite e inicia o serviço. Para autorizar o Automation/n8n remoto e visualizar a API key em uma única operação, execute:
