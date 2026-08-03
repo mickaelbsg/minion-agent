@@ -113,6 +113,8 @@ jobs:
           grep -q 'bootstrap-credentials.txt' "$control/postinst"
           grep -q 'sudo minion bootstrap pair' "$control/postinst"
           grep -q 'display_host=$(hostname -I' "$control/postinst"
+          grep -Fq '*:*) display_url_host="[$display_host]"' "$control/postinst"
+          grep -Fq 'Address: https://${display_url_host}:${bind_port}' "$control/postinst"
           grep -q 'Service: active (minion.service)' "$control/postinst"
           grep -q 'Bootstrap credential (root-only):' "$control/postinst"
           if grep -Eq 'cat[[:space:]]+.*BOOTSTRAP_FILE|grep[[:space:]].*minion_sk_' "$control/postinst"; then
@@ -122,6 +124,20 @@ jobs:
           grep -q '\[ "$1" = "purge" \]' "$control/postrm"
           grep -q 'rm -rf -- /etc/minion /opt/minion /var/lib/minion' "$control/postrm"
           grep -a -q 'Bootstrap paired for' "$root/usr/local/bin/minion"
+
+          format_url_host() {
+            case "$1" in
+              \[*\]) printf '%s' "$1" ;;
+              *:*) printf '[%s]' "$1" ;;
+              *) printf '%s' "$1" ;;
+            esac
+          }
+
+          test "$(format_url_host 192.0.2.10)" = "192.0.2.10"
+          test "$(format_url_host minion.internal)" = "minion.internal"
+          test "$(format_url_host 2001:db8::10)" = "[2001:db8::10]"
+          test "$(format_url_host '[2001:db8::10]')" = "[2001:db8::10]"
+          test "$(format_url_host 127.0.0.1)" = "127.0.0.1"
 
       - name: Test Debian install, upgrade, rollback, removal and purge lifecycle
         shell: bash
