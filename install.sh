@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Uso: sudo ./install.sh <minion_<versao>_amd64.deb>
+Uso: sudo bash ./install.sh <minion_<versao>_amd64.deb>
 
 O pacote Debian é o único artefato oficial de instalação do Minion.
 Este wrapper valida o pacote e usa o APT para instalar o arquivo local com suas dependências.
