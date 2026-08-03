@@ -209,6 +209,19 @@ if [ "$ready" != true ]; then
 fi
 
 bind_address=$(sed -n 's/^[[:space:]]*"bind"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$CONFIG" | head -n 1)
+bind_host=${bind_address%:*}
+bind_port=${bind_address##*:}
+case "$bind_host" in
+  ""|"0.0.0.0"|"::"|"[::]")
+    display_host=$(hostname -I 2>/dev/null | awk '{print $1}')
+    [ -n "$display_host" ] || display_host="127.0.0.1"
+    ;;
+  *)
+    display_host="$bind_host"
+    ;;
+esac
+[ -n "$bind_port" ] || bind_port="9870"
+
 machine_id=$(cat /etc/machine-id 2>/dev/null || true)
 if [ -z "$machine_id" ]; then
   machine_id=$(hostname 2>/dev/null || printf 'unknown')
@@ -219,10 +232,10 @@ rm -rf "$BACKUP_DIR"
 trap - EXIT
 
 echo "Minion installed and running."
-echo "Status: systemctl status minion.service"
-echo "Address: https://${bind_address:-0.0.0.0:9870}"
+echo "Service: active (minion.service)"
+echo "Address: https://${display_host}:${bind_port}"
 echo "Agent ID: $agent_id"
-echo "Bootstrap credential: $BOOTSTRAP_FILE"
+echo "Bootstrap credential (root-only): $BOOTSTRAP_FILE"
 if [ -f "$BOOTSTRAP_FILE" ]; then
   echo "Next step: run 'sudo minion bootstrap pair --ips <AUTOMATION_IP/32>' to authorize Automation and display the initial API key once."
 fi
