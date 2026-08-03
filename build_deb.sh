@@ -222,6 +222,12 @@ case "$bind_host" in
 esac
 [ -n "$bind_port" ] || bind_port="9870"
 
+case "$display_host" in
+  \[*\]) display_url_host="$display_host" ;;
+  *:*) display_url_host="[$display_host]" ;;
+  *) display_url_host="$display_host" ;;
+esac
+
 machine_id=$(cat /etc/machine-id 2>/dev/null || true)
 if [ -z "$machine_id" ]; then
   machine_id=$(hostname 2>/dev/null || printf 'unknown')
@@ -233,7 +239,7 @@ trap - EXIT
 
 echo "Minion installed and running."
 echo "Service: active (minion.service)"
-echo "Address: https://${display_host}:${bind_port}"
+echo "Address: https://${display_url_host}:${bind_port}"
 echo "Agent ID: $agent_id"
 echo "Bootstrap credential (root-only): $BOOTSTRAP_FILE"
 if [ -f "$BOOTSTRAP_FILE" ]; then
