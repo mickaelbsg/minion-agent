@@ -31,8 +31,12 @@ func (s *Service) RotateClientAPIKey(name string) (apiKey string, resultErr erro
 	if err != nil {
 		return "", fmt.Errorf("failed to generate API key: %w", err)
 	}
+	hash, err := security.HashAPIKeyWithError(key)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash API key: %w", err)
+	}
 
-	if err := stor.UpdateClientAPIKeyHash(name, security.HashAPIKey(key)); err != nil {
+	if err := stor.UpdateClientAPIKeyHash(name, hash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", fmt.Errorf("client %q not found", name)
 		}

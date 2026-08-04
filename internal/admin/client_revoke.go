@@ -31,7 +31,11 @@ func (s *Service) RevokeClient(name string) (resultErr error) {
 	if err != nil {
 		return fmt.Errorf("failed to generate revocation secret: %w", err)
 	}
-	if err := stor.RevokeClient(name, security.HashAPIKey(discardedSecret), time.Now().UTC()); err != nil {
+	discardedHash, err := security.HashAPIKeyWithError(discardedSecret)
+	if err != nil {
+		return fmt.Errorf("failed to hash revocation secret: %w", err)
+	}
+	if err := stor.RevokeClient(name, discardedHash, time.Now().UTC()); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("client %q not found or already revoked", name)
 		}
