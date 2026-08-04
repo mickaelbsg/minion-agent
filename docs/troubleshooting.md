@@ -90,3 +90,18 @@ systemctl is-system-running
 ```
 
 O resultado esperado do primeiro comando é `systemd`.
+
+## Scripts Bash falhando no WSL
+
+Se `bash -n build_deb.sh` falhar em um `elif` ou `fi` no WSL, verifique os finais de linha:
+
+```bash
+file build_deb.sh scripts/test-deb-lifecycle.sh
+git ls-files --eol build_deb.sh scripts/test-deb-lifecycle.sh
+```
+
+Os scripts devem usar `LF`. O repositório define isso em `.gitattributes`; depois de atualizar o checkout, confirme novamente a saída e execute:
+
+```bash
+bash -n build_deb.sh scripts/test-deb-lifecycle.sh
+```

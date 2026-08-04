@@ -10,3 +10,10 @@
 - Correção confirmada: a unit regular antiga é arquivada em `/var/lib/minion/legacy-systemd-minion.service` e a unit do pacote passa a ser usada automaticamente.
 - Verificação reproduzível: `bash scripts/test-deb-lifecycle.sh <install.deb> <upgrade.deb> [broken.deb]` passou no Ubuntu WSL com instalação, API, upgrade, rollback e remoção.
 - Dead end evitado: remover manualmente a unit antiga ou usar `dpkg -i`; o primeiro cria uma etapa de operação para o cliente e o segundo não resolve dependências.
+
+## Scripts no WSL
+
+- Sintoma confirmado: `bash -n build_deb.sh` falhava em `elif` no checkout Windows.
+- Causa confirmada: finais de linha `CRLF` no working tree montado pelo WSL.
+- Correção confirmada: `.gitattributes` fixa `LF` para `*.sh`; os scripts foram normalizados.
+- Verificação: `git ls-files --eol` mostra `i/lf w/lf` e `bash -n build_deb.sh scripts/test-deb-lifecycle.sh` passa.
