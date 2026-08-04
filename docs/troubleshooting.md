@@ -70,6 +70,37 @@ sudo minion client create --name automation --ips <AUTOMATION_IP/32>
 
 Clientes autenticados precisam de API key válida, cliente ativo e IP/CIDR autorizado. Não procure a API key em logs: somente o hash é persistido.
 
+## Falha ao criar, rotacionar ou revogar cliente por falta de entropia
+
+Sintoma: comandos administrativos de credenciais falham com erro semelhante a `failed to hash API key`, `failed to hash revocation secret` ou `generate Argon2id salt`. Nenhuma API key nova é criada e o cliente existente permanece inalterado.
+
+Causa: o sistema operacional não conseguiu fornecer aleatoriedade criptograficamente segura para gerar o salt Argon2id. O Minion falha fechado e não usa salt previsível ou fallback determinístico.
+
+Diagnóstico:
+
+```bash
+cat /proc/sys/kernel/random/entropy_avail
+sudo dmesg --level=err,warn | tail -n 50
+sudo journalctl -u minion.service -n 100 --no-pager
+```
+
+Em sistemas virtuais recém-inicializados, confirme também se o kernel dispõe de uma fonte de entropia adequada e se não há falhas no dispositivo aleatório:
+
+```bash
+ls -l /dev/random /dev/urandom
+sudo systemctl status systemd-random-seed.service --no-pager -l
+```
+
+Correção: resolva a indisponibilidade de entropia no host e repita o comando. Não altere o banco SQLite manualmente e não tente substituir o Argon2id por hash estático.
+
+Verificação esperada:
+
+```bash
+sudo minion client list
+```
+
+Para criação ou rotação, repita a operação e confirme que uma nova API key foi retornada apenas uma vez. Para revogação, confirme que o cliente aparece revogado. Em caso de falha, o cliente anterior deve continuar com o mesmo estado e credencial.
+
 ## Upgrade, rollback e remoção
 
 Use o harness completo em um host Debian/Ubuntu com `systemd` como PID 1:
