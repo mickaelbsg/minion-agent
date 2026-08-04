@@ -5,12 +5,77 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 const DefaultCredentialsPath = "/var/lib/minion/bootstrap-credentials.txt"
 
 var ErrAlreadyConsumed = errors.New("bootstrap credentials are unavailable or already consumed")
+
+// WriteCredentials stores a newly generated bootstrap credential without
+// exposing it through stdout. The destination is created once, root-only, and
+// published atomically only after the complete payload has reached disk.
+func WriteCredentials(path, clientName, allowedIPs, apiKey string) error {
+	if strings.TrimSpace(path) == "" {
+		path = DefaultCredentialsPath
+	}
+	if strings.TrimSpace(apiKey) == "" {
+		return fmt.Errorf("bootstrap API key is required")
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("create bootstrap credentials directory: %w", err)
+	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return fmt.Errorf("secure bootstrap credentials directory: %w", err)
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return fmt.Errorf("bootstrap credentials already exist; consume or remove them before creating another client")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("inspect bootstrap credentials destination: %w", err)
+	}
+
+	tmp, err := os.CreateTemp(dir, ".bootstrap-credentials-*")
+	if err != nil {
+		return fmt.Errorf("create temporary bootstrap credentials: %w", err)
+	}
+	tmpPath := tmp.Name()
+	cleanup := func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+	}
+
+	if err := tmp.Chmod(0o600); err != nil {
+		cleanup()
+		return fmt.Errorf("secure temporary bootstrap credentials: %w", err)
+	}
+	payload := fmt.Sprintf("Client: %s\nAllowed IPs: %s\nAPI Key: %s\n", clientName, allowedIPs, apiKey)
+	if _, err := io.WriteString(tmp, payload); err != nil {
+		cleanup()
+		return fmt.Errorf("write temporary bootstrap credentials: %w", err)
+	}
+	if err := tmp.Sync(); err != nil {
+		cleanup()
+		return fmt.Errorf("sync temporary bootstrap credentials: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("close temporary bootstrap credentials: %w", err)
+	}
+
+	// A hard link publishes the completed file atomically and refuses to
+	// overwrite an existing credential file.
+	if err := os.Link(tmpPath, path); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("publish bootstrap credentials: %w", err)
+	}
+	if err := os.Remove(tmpPath); err != nil {
+		return fmt.Errorf("remove temporary bootstrap credentials: %w", err)
+	}
+	return nil
+}
 
 // Read validates and reads bootstrap credentials without removing them.
 func Read(path string, isRoot func() bool) ([]byte, error) {
