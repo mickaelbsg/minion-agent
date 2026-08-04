@@ -30,11 +30,13 @@ func (execRunner) Run(name string, args ...string) ([]byte, error) {
 }
 
 type Service struct {
-	ConfigPath    string
-	TLSDir        string
-	ServiceUnit   string
-	CommandRunner CommandRunner
-	IsRoot        func() bool
+	ConfigPath     string
+	TLSDir         string
+	ServiceUnit    string
+	CommandRunner  CommandRunner
+	IsRoot         func() bool
+	GenerateAPIKey func() (string, error)
+	HashAPIKey     func(string) (string, error)
 }
 
 type Status struct {
@@ -83,10 +85,12 @@ type CreatedClient struct {
 
 func NewService(configPath string) *Service {
 	return &Service{
-		ConfigPath:    configPath,
-		TLSDir:        defaultTLSDir,
-		ServiceUnit:   defaultServiceUnit,
-		CommandRunner: execRunner{},
+		ConfigPath:     configPath,
+		TLSDir:         defaultTLSDir,
+		ServiceUnit:    defaultServiceUnit,
+		CommandRunner:  execRunner{},
+		GenerateAPIKey: security.GenerateAPIKey,
+		HashAPIKey:     security.HashAPIKeyWithError,
 		IsRoot: func() bool {
 			return os.Geteuid() == 0
 		},
@@ -249,11 +253,11 @@ func (s *Service) Setup(opts SetupOptions) (result SetupResult, resultErr error)
 	}
 
 	if len(clients) == 0 {
-		key, err := security.GenerateAPIKey()
+		key, err := s.GenerateAPIKey()
 		if err != nil {
 			return SetupResult{}, fmt.Errorf("failed to generate API key: %w", err)
 		}
-		hash, err := security.HashAPIKeyWithError(key)
+		hash, err := s.HashAPIKey(key)
 		if err != nil {
 			return SetupResult{}, fmt.Errorf("failed to hash API key: %w", err)
 		}
@@ -299,11 +303,11 @@ func (s *Service) CreateClient(name, ips string) (created CreatedClient, resultE
 	}
 	defer closeWithError(stor.DB, &resultErr)
 
-	key, err := security.GenerateAPIKey()
+	key, err := s.GenerateAPIKey()
 	if err != nil {
 		return CreatedClient{}, fmt.Errorf("failed to generate API key: %w", err)
 	}
-	hash, err := security.HashAPIKeyWithError(key)
+	hash, err := s.HashAPIKey(key)
 	if err != nil {
 		return CreatedClient{}, fmt.Errorf("failed to hash API key: %w", err)
 	}
