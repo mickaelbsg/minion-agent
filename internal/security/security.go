@@ -4,41 +4,50 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
+	"fmt"
 	"net"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
 )
 
+var readRandom = rand.Read
+
 func GenerateAPIKey() (string, error) {
 	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
+	if _, err := readRandom(buf); err != nil {
 		return "", err
 	}
 	return "minion_sk_" + base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
-// HashAPIKey generates a salted Argon2id hash for the given API key.
+// HashAPIKeyWithError generates a salted Argon2id hash for the given API key.
 // A new random 16-byte salt is generated for each call and the result is
-// returned in the form "base64(salt)$base64(hash)". This format allows the
-// corresponding VerifyAPIKey function to recreate the hash using the stored
-// salt.
-func HashAPIKey(apiKey string) string {
-	// Generate a random 16-byte salt.
+// returned in the form "base64(salt)$base64(hash)". Entropy failures are
+// returned to the caller so credentials are never created with a predictable
+// fallback salt.
+func HashAPIKeyWithError(apiKey string) (string, error) {
 	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		// In the unlikely event of a RNG failure, fall back to a deterministic
-		// salt so the function still returns something usable (the caller will
-		// treat this as an internal error).
-		salt = []byte("fallback_salt_123")
+	if _, err := readRandom(salt); err != nil {
+		return "", fmt.Errorf("generate Argon2id salt: %w", err)
 	}
 	hash := argon2.IDKey([]byte(apiKey), salt, 1, 64*1024, 4, 32)
-	// Encode both components using URL-safe base64 without padding.
-	return base64.RawURLEncoding.EncodeToString(salt) + "$" + base64.RawURLEncoding.EncodeToString(hash)
+	return base64.RawURLEncoding.EncodeToString(salt) + "$" + base64.RawURLEncoding.EncodeToString(hash), nil
+}
+
+// HashAPIKey is retained for compatibility with read-only tooling and tests.
+// New credential-management code must use HashAPIKeyWithError and propagate
+// failures. An empty string indicates that secure entropy was unavailable.
+func HashAPIKey(apiKey string) string {
+	hash, err := HashAPIKeyWithError(apiKey)
+	if err != nil {
+		return ""
+	}
+	return hash
 }
 
 // VerifyAPIKey checks whether the supplied apiKey matches the stored salted
-// hash (in the format produced by HashAPIKey). It returns true on a match.
+// hash (in the format produced by HashAPIKeyWithError). It returns true on a match.
 func VerifyAPIKey(apiKey, stored string) bool {
 	parts := strings.SplitN(stored, "$", 2)
 	if len(parts) != 2 {
