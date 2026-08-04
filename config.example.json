@@ -6,13 +6,5 @@
   "security": {
     "allowed_fail2ban_jails": ["sshd", "apache-auth", "recidive"]
   },
-  "db_path": "/opt/minion/minion.db",
-  "clients": [
-    {
-      "name": "api_severino",
-      "allowed_ips": ["192.168.56.2/32"],
-      "api_key_hash": "REPLACE_WITH_HASH",
-      "enabled": true
-    }
-  ]
+  "db_path": "/opt/minion/minion.db"
 }

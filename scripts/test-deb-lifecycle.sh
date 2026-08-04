@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_PACKAGE="${1:-./minion_1.0.4_amd64.deb}"
+INSTALL_PACKAGE="${1:?'usage: test-deb-lifecycle.sh <install.deb> [upgrade.deb] [broken.deb]'}"
 UPGRADE_PACKAGE="${2:-$INSTALL_PACKAGE}"
 BROKEN_PACKAGE="${3:-}"
 SERVICE="minion.service"

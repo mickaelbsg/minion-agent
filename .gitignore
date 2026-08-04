@@ -19,6 +19,7 @@ coverage.out
 !.env.example
 .graphify.env.local
 *.local
+config.json
 
 # SQLite runtime files
 *.db
@@ -38,3 +39,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# LXC lab artifacts
+/tmp/minion-lab-info.txt
