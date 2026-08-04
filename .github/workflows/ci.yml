@@ -111,14 +111,15 @@ jobs:
           grep -q 'systemctl is-active --quiet minion.service' "$control/postinst"
           grep -q 'STATE_DIR="/var/lib/minion"' "$control/postinst"
           grep -q 'bootstrap-credentials.txt' "$control/postinst"
+          grep -q "stat -c '%u:%g:%a'" "$control/postinst"
           grep -q 'sudo minion bootstrap pair' "$control/postinst"
           grep -q 'display_host=$(hostname -I' "$control/postinst"
           grep -Fq '*:*) display_url_host="[$display_host]"' "$control/postinst"
           grep -Fq 'Address: https://${display_url_host}:${bind_port}' "$control/postinst"
           grep -q 'Service: active (minion.service)' "$control/postinst"
           grep -q 'Bootstrap credential (root-only):' "$control/postinst"
-          if grep -Eq 'cat[[:space:]]+.*BOOTSTRAP_FILE|grep[[:space:]].*minion_sk_' "$control/postinst"; then
-            echo "postinst may expose bootstrap API key in package output" >&2
+          if grep -Eq 'BOOTSTRAP_TMP|API Key:|grep[[:space:]].*BOOTSTRAP|cat[[:space:]]+.*BOOTSTRAP_FILE|minion_sk_' "$control/postinst"; then
+            echo "postinst contains legacy bootstrap secret capture or exposure logic" >&2
             exit 1
           fi
           grep -q '\[ "$1" = "purge" \]' "$control/postrm"
