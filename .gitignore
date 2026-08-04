@@ -42,3 +42,6 @@ Thumbs.db
 
 # LXC lab artifacts
 /tmp/minion-lab-info.txt
+
+# Uzinha compiled binary
+uzinha/uzinha
