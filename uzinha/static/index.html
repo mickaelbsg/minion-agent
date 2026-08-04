@@ -12,16 +12,66 @@
         <p>Minion Control Panel</p>
     </header>
 
+    <nav class="tabs">
+        <button class="tab active" onclick="showTab('minions')">Minions</button>
+        <button class="tab" onclick="showTab('lxc')">LXC Lab</button>
+    </nav>
+
     <main>
-        <section id="minions-grid" class="minions-grid">
-            <div class="loading">Carregando minions...</div>
+        <section id="minions-panel" class="panel">
+            <section id="minions-grid" class="minions-grid">
+                <div class="loading">Carregando minions...</div>
+            </section>
+
+            <section id="minion-detail" class="minion-detail hidden">
+                <button class="back-btn" onclick="showGrid()">← Voltar</button>
+                <div id="detail-content"></div>
+            </section>
         </section>
 
-        <section id="minion-detail" class="minion-detail hidden">
-            <button class="back-btn" onclick="showGrid()">← Voltar</button>
-            <div id="detail-content"></div>
+        <section id="lxc-panel" class="panel hidden">
+            <div class="lxc-header">
+                <h2>LXC Laboratory</h2>
+                <div class="lxc-actions">
+                    <button class="btn btn-primary" onclick="showCreateDialog()">+ Criar Container</button>
+                    <button class="btn btn-secondary" onclick="refreshLXCList()">🔄 Atualizar</button>
+                </div>
+            </div>
+
+            <div id="lxc-containers" class="lxc-containers">
+                <div class="loading">Carregando containers...</div>
+            </div>
+
+            <div id="lxc-logs" class="lxc-logs">
+                <h3>Logs</h3>
+                <div id="log-content" class="log-content"></div>
+            </div>
         </section>
     </main>
+
+    <div id="create-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3>Criar Container LXC</h3>
+            <form id="create-form" onsubmit="createContainer(event)">
+                <div class="form-group">
+                    <label>Nome:</label>
+                    <input type="text" id="container-name" placeholder="minion-lab-001" required>
+                </div>
+                <div class="form-group">
+                    <label>Image:</label>
+                    <select id="container-image">
+                        <option value="debian:12">Debian 12 (Bookworm)</option>
+                        <option value="ubuntu:22.04">Ubuntu 22.04</option>
+                        <option value="ubuntu:24.04">Ubuntu 24.04</option>
+                    </select>
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideCreateDialog()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="/static/app.js"></script>
 </body>
