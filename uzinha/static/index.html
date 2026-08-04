@@ -1,57 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uzinha - Minion Control Panel</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-        .header { background: #1e293b; padding: 1rem 2rem; border-bottom: 1px solid #334155; }
-        .header h1 { font-size: 1.5rem; color: #38bdf8; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-        .minion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-        .minion-card { background: #1e293b; border-radius: 8px; padding: 1.5rem; border: 1px solid #334155; }
-        .minion-card h3 { color: #38bdf8; margin-bottom: 0.5rem; }
-        .status { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
-        .online { background: #065f46; color: #34d399; }
-        .offline { background: #7f1d1d; color: #fca5a5; }
-        .loading { text-align: center; padding: 2rem; color: #94a3b8; }
-    </style>
+    <title>Uzinha - Minion Control</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="header">
-        <h1>Uzinha - Minion Control Panel</h1>
-    </div>
-    <div class="container">
-        <div id="minions" class="minion-grid">
-            <div class="loading">Loading minions...</div>
-        </div>
-    </div>
-    <script>
-        async function loadMinions() {
-            try {
-                const resp = await fetch('/api/minions');
-                const minions = await resp.json();
-                const container = document.getElementById('minions');
-                if (minions.length === 0) {
-                    container.innerHTML = '<div class="loading">No minions configured</div>';
-                    return;
-                }
-                container.innerHTML = minions.map(m => `
-                    <div class="minion-card">
-                        <h3>${m.name}</h3>
-                        <p><span class="status ${m.online ? 'online' : 'offline'}">${m.online ? 'Online' : 'Offline'}</span></p>
-                        <p style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.875rem;">${m.host}</p>
-                        ${m.error ? `<p style="color: #fca5a5; margin-top: 0.5rem; font-size: 0.75rem;">${m.error}</p>` : ''}
-                    </div>
-                `).join('');
-            } catch (e) {
-                document.getElementById('minions').innerHTML = '<div class="loading">Error loading minions</div>';
-            }
-        }
-        loadMinions();
-        setInterval(loadMinions, 30000);
-    </script>
+    <header>
+        <h1>🍳 Uzinha</h1>
+        <p>Minion Control Panel</p>
+    </header>
+
+    <main>
+        <section id="minions-grid" class="minions-grid">
+            <div class="loading">Carregando minions...</div>
+        </section>
+
+        <section id="minion-detail" class="minion-detail hidden">
+            <button class="back-btn" onclick="showGrid()">← Voltar</button>
+            <div id="detail-content"></div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
 </body>
 </html>
