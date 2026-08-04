@@ -26,6 +26,13 @@ assert_mode() {
   [[ "$actual" == "$expected" ]] || fail "$path mode is $actual, expected $expected"
 }
 
+assert_root_owned_regular_file() {
+  local path="$1"
+  sudo test -f "$path" || fail "$path is not a regular file"
+  sudo test ! -L "$path" || fail "$path must not be a symbolic link"
+  [[ "$(sudo stat -c '%u:%g' "$path")" == "0:0" ]] || fail "$path is not owned by root:root"
+}
+
 client_fingerprint() {
   sudo sqlite3 "$DB" \
     "SELECT name || '|' || allowed_ips || '|' || api_key_hash || '|' || enabled FROM clients ORDER BY name;"
@@ -73,7 +80,17 @@ fi
 sudo dpkg --purge minion >/dev/null 2>&1 || true
 sudo rm -rf /etc/minion /opt/minion /var/lib/minion
 
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$INSTALL_PACKAGE"
+install_output="$(mktemp)"
+if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$INSTALL_PACKAGE" >"$install_output" 2>&1; then
+  cat "$install_output" >&2
+  fail "fresh package installation failed"
+fi
+if grep -Eq '(^|[[:space:]])API Key:|minion_sk_' "$install_output"; then
+  cat "$install_output" >&2
+  fail "package installation exposed bootstrap credentials in its output"
+fi
+rm -f "$install_output"
+
 [[ "$(dpkg-query -W -f='${Version}' minion)" == "$install_version" ]] || fail "unexpected installed package version"
 sudo systemctl is-active --quiet "$SERVICE" || fail "service is not active after installation"
 fragment_path="$(sudo systemctl show -p FragmentPath --value "$SERVICE")"
@@ -88,6 +105,7 @@ assert_mode "$CONFIG" 600
 assert_mode "$DB" 600
 assert_mode "$KEY" 600
 assert_mode "$BOOTSTRAP" 600
+assert_root_owned_regular_file "$BOOTSTRAP"
 
 pair_output="$(sudo /usr/local/bin/minion bootstrap pair --config "$CONFIG" --ips 127.0.0.1/32)"
 api_key="$(printf '%s\n' "$pair_output" | sed -n 's/^API Key: //p' | head -n 1)"
