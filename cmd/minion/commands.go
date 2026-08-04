@@ -87,8 +87,21 @@ func setup(configPath, clientName, clientIPs string) {
 	}
 	fmt.Println("\nMinion setup completed.")
 	if result.BootstrapCreated {
-		fmt.Printf("Bootstrap client: %s\nAllowed IPs: %s\nAPI Key: %s\n", result.ClientName, result.ClientIPs, result.APIKey)
-		fmt.Println("\nStore this API key now. It is shown only once and only its hash is stored.")
+		if err := bootstrap.WriteCredentials(
+			bootstrap.DefaultCredentialsPath,
+			result.ClientName,
+			result.ClientIPs,
+			result.APIKey,
+		); err != nil {
+			rollbackErr := service.DeleteClient(result.ClientName)
+			if rollbackErr != nil {
+				log.Fatalf("setup could not store bootstrap credentials and could not roll back bootstrap client: %v; rollback: %v", err, rollbackErr)
+			}
+			log.Fatalf("setup could not store bootstrap credentials; bootstrap client was rolled back: %v", err)
+		}
+		fmt.Printf("Bootstrap client: %s\nAllowed IPs: %s\n", result.ClientName, result.ClientIPs)
+		fmt.Printf("Bootstrap credential stored root-only at %s.\n", bootstrap.DefaultCredentialsPath)
+		fmt.Println("Use `sudo minion bootstrap pair --ips <AUTOMATION_IP/32>` to display it once and authorize Automation.")
 	} else {
 		fmt.Println("Existing API clients found. No new bootstrap API key was generated.")
 	}
