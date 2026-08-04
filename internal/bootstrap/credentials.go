@@ -13,6 +13,21 @@ const DefaultCredentialsPath = "/var/lib/minion/bootstrap-credentials.txt"
 
 var ErrAlreadyConsumed = errors.New("bootstrap credentials are unavailable or already consumed")
 
+// PublicationError reports a failure after the official destination was
+// created. Callers must not delete the matching client automatically because
+// the credential may already be recoverable from disk.
+type PublicationError struct {
+	Err error
+}
+
+func (e *PublicationError) Error() string { return e.Err.Error() }
+func (e *PublicationError) Unwrap() error { return e.Err }
+
+func WasPublished(err error) bool {
+	var publicationErr *PublicationError
+	return errors.As(err, &publicationErr)
+}
+
 // WriteCredentials stores a newly generated bootstrap credential without
 // exposing it through stdout. The destination is created once, root-only, and
 // published atomically only after the complete payload has reached disk.
@@ -71,10 +86,26 @@ func WriteCredentials(path, clientName, allowedIPs, apiKey string) error {
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("publish bootstrap credentials: %w", err)
 	}
-	if err := os.Remove(tmpPath); err != nil {
-		return fmt.Errorf("remove temporary bootstrap credentials: %w", err)
+	if err := syncDirectory(dir); err != nil {
+		_ = os.Remove(tmpPath)
+		return &PublicationError{Err: fmt.Errorf("sync published bootstrap credentials directory: %w", err)}
+	}
+
+	// The official destination is durable at this point. Failure to remove the
+	// temporary hard link must not make setup delete the matching client.
+	if err := os.Remove(tmpPath); err == nil {
+		_ = syncDirectory(dir)
 	}
 	return nil
+}
+
+func syncDirectory(path string) error {
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	return dir.Sync()
 }
 
 // Read validates and reads bootstrap credentials without removing them.
