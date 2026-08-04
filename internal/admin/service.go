@@ -253,7 +253,10 @@ func (s *Service) Setup(opts SetupOptions) (result SetupResult, resultErr error)
 		if err != nil {
 			return SetupResult{}, fmt.Errorf("failed to generate API key: %w", err)
 		}
-		hash := security.HashAPIKey(key)
+		hash, err := security.HashAPIKeyWithError(key)
+		if err != nil {
+			return SetupResult{}, fmt.Errorf("failed to hash API key: %w", err)
+		}
 		if err := stor.InsertClient(opts.ClientName, opts.ClientIPs, hash); err != nil {
 			return SetupResult{}, fmt.Errorf("failed to create bootstrap client: %w", err)
 		}
@@ -300,7 +303,10 @@ func (s *Service) CreateClient(name, ips string) (created CreatedClient, resultE
 	if err != nil {
 		return CreatedClient{}, fmt.Errorf("failed to generate API key: %w", err)
 	}
-	hash := security.HashAPIKey(key)
+	hash, err := security.HashAPIKeyWithError(key)
+	if err != nil {
+		return CreatedClient{}, fmt.Errorf("failed to hash API key: %w", err)
+	}
 	if err := stor.InsertClient(name, ips, hash); err != nil {
 		return CreatedClient{}, err
 	}
