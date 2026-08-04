@@ -76,7 +76,6 @@ TLS_DIR="/etc/minion/tls"
 STATE_DIR="/var/lib/minion"
 BACKUP_DIR="$STATE_DIR/upgrade-backup"
 BOOTSTRAP_FILE="$STATE_DIR/bootstrap-credentials.txt"
-BOOTSTRAP_TMP="$STATE_DIR/.bootstrap-credentials.tmp"
 
 rollback_upgrade() {
   [ -f "$BACKUP_DIR/ready" ] || return 0
@@ -151,6 +150,7 @@ require_command iptables
 require_command fail2ban-client
 require_command sqlite3
 require_command curl
+require_command stat
 
 PACKAGED_UNIT="/lib/systemd/system/minion.service"
 LEGACY_UNIT="/etc/systemd/system/minion.service"
@@ -164,19 +164,33 @@ fi
 systemctl daemon-reload
 systemctl reset-failed minion.service >/dev/null 2>&1 || true
 
+bootstrap_client_existed=false
+if [ -f "$DATA_DIR/minion.db" ] && \
+   [ "$(sqlite3 "$DATA_DIR/minion.db" "SELECT COUNT(*) FROM clients WHERE name = 'bootstrap';" 2>/dev/null || printf '0')" -gt 0 ]; then
+  bootstrap_client_existed=true
+fi
+
 umask 077
-if /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0.1/32 >"$BOOTSTRAP_TMP" 2>&1; then
-  if grep -q '^API Key:' "$BOOTSTRAP_TMP"; then
-    mv -f "$BOOTSTRAP_TMP" "$BOOTSTRAP_FILE"
-    chmod 600 "$BOOTSTRAP_FILE"
-    echo "Minion bootstrap credential created securely."
-  else
-    rm -f "$BOOTSTRAP_TMP"
-  fi
-else
-  rm -f "$BOOTSTRAP_TMP"
+if ! /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0.1/32; then
   echo "Minion bootstrap failed; package configuration was not completed." >&2
   exit 1
+fi
+
+if [ -e "$BOOTSTRAP_FILE" ]; then
+  if [ ! -f "$BOOTSTRAP_FILE" ] || [ -L "$BOOTSTRAP_FILE" ]; then
+    echo "Minion bootstrap credential was not published as a regular root-only file." >&2
+    exit 1
+  fi
+  if [ "$(stat -c '%u:%g:%a' "$BOOTSTRAP_FILE")" != "0:0:600" ]; then
+    echo "Minion bootstrap credential has unsafe ownership or permissions." >&2
+    exit 1
+  fi
+  echo "Minion bootstrap credential created securely."
+elif [ "$bootstrap_client_existed" != true ]; then
+  echo "Minion bootstrap credential was not published for the newly created bootstrap client." >&2
+  exit 1
+else
+  echo "Existing Minion bootstrap client preserved; no new credential was generated."
 fi
 
 chmod 700 /etc/minion "$TLS_DIR" "$DATA_DIR" "$STATE_DIR"
@@ -241,9 +255,11 @@ echo "Minion installed and running."
 echo "Service: active (minion.service)"
 echo "Address: https://${display_url_host}:${bind_port}"
 echo "Agent ID: $agent_id"
-echo "Bootstrap credential (root-only): $BOOTSTRAP_FILE"
 if [ -f "$BOOTSTRAP_FILE" ]; then
+  echo "Bootstrap credential (root-only): $BOOTSTRAP_FILE"
   echo "Next step: run 'sudo minion bootstrap pair --ips <AUTOMATION_IP/32>' to authorize Automation and display the initial API key once."
+else
+  echo "Bootstrap credential: already consumed; existing client credentials were preserved."
 fi
 exit 0
 EOS
