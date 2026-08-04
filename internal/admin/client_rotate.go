@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"minion/internal/security"
 )
 
 // RotateClientAPIKey replaces the stored hash for an existing client and
@@ -27,11 +25,11 @@ func (s *Service) RotateClientAPIKey(name string) (apiKey string, resultErr erro
 	}
 	defer closeWithError(stor.DB, &resultErr)
 
-	key, err := security.GenerateAPIKey()
+	key, err := s.GenerateAPIKey()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate API key: %w", err)
 	}
-	hash, err := security.HashAPIKeyWithError(key)
+	hash, err := s.HashAPIKey(key)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash API key: %w", err)
 	}

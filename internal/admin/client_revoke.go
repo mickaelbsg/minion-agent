@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"minion/internal/security"
 )
 
 // RevokeClient permanently invalidates a client API key while preserving the
@@ -27,11 +25,11 @@ func (s *Service) RevokeClient(name string) (resultErr error) {
 	}
 	defer closeWithError(stor.DB, &resultErr)
 
-	discardedSecret, err := security.GenerateAPIKey()
+	discardedSecret, err := s.GenerateAPIKey()
 	if err != nil {
 		return fmt.Errorf("failed to generate revocation secret: %w", err)
 	}
-	discardedHash, err := security.HashAPIKeyWithError(discardedSecret)
+	discardedHash, err := s.HashAPIKey(discardedSecret)
 	if err != nil {
 		return fmt.Errorf("failed to hash revocation secret: %w", err)
 	}
