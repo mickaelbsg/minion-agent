@@ -82,12 +82,12 @@ sudo rm -rf /etc/minion /opt/minion /var/lib/minion
 
 install_output="$(mktemp)"
 if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$INSTALL_PACKAGE" >"$install_output" 2>&1; then
-  cat "$install_output" >&2
-  fail "fresh package installation failed"
+  rm -f "$install_output"
+  fail "fresh package installation failed; output suppressed to avoid exposing bootstrap credentials"
 fi
 if grep -Eq '(^|[[:space:]])API Key:|minion_sk_' "$install_output"; then
-  cat "$install_output" >&2
-  fail "package installation exposed bootstrap credentials in its output"
+  rm -f "$install_output"
+  fail "package installation exposed bootstrap credentials in its output; captured output was discarded"
 fi
 rm -f "$install_output"
 
