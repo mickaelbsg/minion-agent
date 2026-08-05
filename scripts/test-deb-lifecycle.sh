@@ -42,11 +42,12 @@ package_version() {
   dpkg-deb -f "$1" Version
 }
 
-assert_dependency() {
+assert_no_dependency() {
   local package="$1"
   local dependency="$2"
-  dpkg-deb -f "$package" Depends | tr ',' '\n' | grep -Eq "^[[:space:]]*${dependency}([[:space:](]|$)" || \
-    fail "$package does not declare $dependency as a package dependency"
+  if dpkg-deb -f "$package" Depends | tr ',' '\n' | grep -Eq "^[[:space:]]*${dependency}([[:space:](]|$)"; then
+    fail "$package still declares $dependency as a package dependency"
+  fi
 }
 
 assert_recommendation() {
@@ -70,7 +71,14 @@ command -v curl >/dev/null || fail "curl is required by the test harness"
 
 assert_recommendation "$INSTALL_PACKAGE" "fail2ban"
 assert_recommendation "$INSTALL_PACKAGE" "iptables"
-assert_dependency "$INSTALL_PACKAGE" "sqlite3"
+assert_no_dependency "$INSTALL_PACKAGE" "sqlite3"
+
+# sqlite3 is used only by this test harness to compare complete client rows.
+# Installing it explicitly here proves it is not pulled as a Minion dependency.
+if ! command -v sqlite3 >/dev/null 2>&1; then
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends sqlite3 >/dev/null
+fi
 
 install_version="$(package_version "$INSTALL_PACKAGE")"
 upgrade_version="$(package_version "$UPGRADE_PACKAGE")"
