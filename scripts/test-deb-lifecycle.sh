@@ -67,17 +67,22 @@ trap cleanup EXIT
 [[ -z "$BROKEN_PACKAGE" || -f "$BROKEN_PACKAGE" ]] || fail "broken package not found: $BROKEN_PACKAGE"
 command -v systemctl >/dev/null || fail "systemctl is unavailable"
 [[ "$(ps -p 1 -o comm=)" == "systemd" ]] || fail "test host is not running systemd as PID 1"
-command -v curl >/dev/null || fail "curl is required by the test harness"
 
 assert_recommendation "$INSTALL_PACKAGE" "fail2ban"
 assert_recommendation "$INSTALL_PACKAGE" "iptables"
 assert_no_dependency "$INSTALL_PACKAGE" "sqlite3"
+assert_no_dependency "$INSTALL_PACKAGE" "curl"
 
-# sqlite3 is used only by this test harness to compare complete client rows.
-# Installing it explicitly here proves it is not pulled as a Minion dependency.
-if ! command -v sqlite3 >/dev/null 2>&1; then
+# sqlite3 and curl are used only by this test harness to compare complete client rows
+# and exercise authenticated endpoints. Installing them explicitly here proves that
+# neither tool is pulled as a Minion runtime dependency.
+missing_test_tools=()
+command -v sqlite3 >/dev/null 2>&1 || missing_test_tools+=(sqlite3)
+command -v curl >/dev/null 2>&1 || missing_test_tools+=(curl)
+if (( ${#missing_test_tools[@]} > 0 )); then
   sudo apt-get update -qq
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends sqlite3 >/dev/null
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    "${missing_test_tools[@]}" >/dev/null
 fi
 
 install_version="$(package_version "$INSTALL_PACKAGE")"
