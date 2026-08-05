@@ -91,6 +91,12 @@ jobs:
           dpkg-deb --info "$package"
           dpkg-deb --contents "$package"
 
+          depends="$(dpkg-deb -f "$package" Depends)"
+          recommends="$(dpkg-deb -f "$package" Recommends)"
+          ! printf '%s\n' "$depends" | grep -Eq '(^|,)[[:space:]]*(iptables|fail2ban)([[:space:](,]|$)'
+          printf '%s\n' "$recommends" | grep -Eq '(^|,)[[:space:]]*iptables([[:space:](,]|$)'
+          printf '%s\n' "$recommends" | grep -Eq '(^|,)[[:space:]]*fail2ban([[:space:](,]|$)'
+
           root="$(mktemp -d)"
           control="$(mktemp -d)"
           dpkg-deb --extract "$package" "$root"
@@ -118,6 +124,10 @@ jobs:
           grep -Fq 'Address: https://${display_url_host}:${bind_port}' "$control/postinst"
           grep -q 'Service: active (minion.service)' "$control/postinst"
           grep -q 'Bootstrap credential (root-only):' "$control/postinst"
+          if grep -Eq 'require_command[[:space:]]+(iptables|fail2ban-client)' "$control/postinst"; then
+            echo "postinst requires optional observability commands" >&2
+            exit 1
+          fi
           if grep -Eq 'BOOTSTRAP_TMP|API Key:|grep[[:space:]].*BOOTSTRAP|cat[[:space:]]+.*BOOTSTRAP_FILE|minion_sk_' "$control/postinst"; then
             echo "postinst contains legacy bootstrap secret capture or exposure logic" >&2
             exit 1
@@ -139,6 +149,10 @@ jobs:
           test "$(format_url_host 2001:db8::10)" = "[2001:db8::10]"
           test "$(format_url_host '[2001:db8::10]')" = "[2001:db8::10]"
           test "$(format_url_host 127.0.0.1)" = "127.0.0.1"
+
+      - name: Test minimal Debian installation without optional integrations
+        shell: bash
+        run: bash scripts/test-deb-minimal-host.sh ./minion_1.0.5_amd64.deb
 
       - name: Test Debian install, upgrade, rollback, removal and purge lifecycle
         shell: bash

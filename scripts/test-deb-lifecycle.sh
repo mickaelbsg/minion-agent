@@ -49,6 +49,13 @@ assert_dependency() {
     fail "$package does not declare $dependency as a package dependency"
 }
 
+assert_recommendation() {
+  local package="$1"
+  local dependency="$2"
+  dpkg-deb -f "$package" Recommends | tr ',' '\n' | grep -Eq "^[[:space:]]*${dependency}([[:space:](]|$)" || \
+    fail "$package does not declare $dependency as a package recommendation"
+}
+
 cleanup() {
   sudo dpkg --purge minion >/dev/null 2>&1 || true
 }
@@ -61,7 +68,8 @@ command -v systemctl >/dev/null || fail "systemctl is unavailable"
 [[ "$(ps -p 1 -o comm=)" == "systemd" ]] || fail "test host is not running systemd as PID 1"
 command -v curl >/dev/null || fail "curl is required by the test harness"
 
-assert_dependency "$INSTALL_PACKAGE" "fail2ban"
+assert_recommendation "$INSTALL_PACKAGE" "fail2ban"
+assert_recommendation "$INSTALL_PACKAGE" "iptables"
 assert_dependency "$INSTALL_PACKAGE" "sqlite3"
 
 install_version="$(package_version "$INSTALL_PACKAGE")"
