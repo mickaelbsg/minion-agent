@@ -64,7 +64,7 @@ func TestPackageReadinessEndpoint(t *testing.T) {
 
 	cfg := config.Default()
 	cfg.API.Bind = "0.0.0.0:9870"
-	endpoint, err := packageReadinessEndpoint(cfg)
+	endpoint, err := packageReadinessEndpoint(cfg, true)
 	if err != nil {
 		t.Fatalf("build endpoint: %v", err)
 	}
@@ -73,12 +73,36 @@ func TestPackageReadinessEndpoint(t *testing.T) {
 	}
 
 	cfg.API.Bind = "[::]:9871"
-	endpoint, err = packageReadinessEndpoint(cfg)
+	endpoint, err = packageReadinessEndpoint(cfg, true)
 	if err != nil {
 		t.Fatalf("build IPv6 endpoint: %v", err)
 	}
 	if endpoint != "https://[::1]:9871/api/v1/health" {
 		t.Fatalf("unexpected IPv6 endpoint %q", endpoint)
+	}
+}
+
+func TestPackageReadinessEndpointMatchesServerTLSPrecedence(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Default()
+	cfg.API.Bind = "127.0.0.1:9870"
+	cfg.API.AllowInsecureHTTP = true
+
+	endpoint, err := packageReadinessEndpoint(cfg, true)
+	if err != nil {
+		t.Fatalf("build TLS endpoint: %v", err)
+	}
+	if endpoint != "https://127.0.0.1:9870/api/v1/health" {
+		t.Fatalf("expected HTTPS while TLS assets exist, got %q", endpoint)
+	}
+
+	endpoint, err = packageReadinessEndpoint(cfg, false)
+	if err != nil {
+		t.Fatalf("build HTTP endpoint: %v", err)
+	}
+	if endpoint != "http://127.0.0.1:9870/api/v1/health" {
+		t.Fatalf("expected HTTP only without TLS assets, got %q", endpoint)
 	}
 }
 
