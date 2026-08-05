@@ -34,6 +34,10 @@ func run() {
 	}
 	_ = fs.Parse(flagsOnly)
 
+	if len(subcommands) > 0 && subcommands[0] == "package" {
+		handlePackageCommands(subcommands[1:], *configPath, *clientName)
+		return
+	}
 	if dispatchCommand(subcommands, *configPath, *clientName, *clientIPs, *uiSection) {
 		return
 	}
