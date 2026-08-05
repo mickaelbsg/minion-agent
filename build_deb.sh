@@ -26,7 +26,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
-Depends: libc6 (>= 2.28), openssl, curl
+Depends: libc6 (>= 2.28), openssl
 Recommends: iptables, fail2ban
 Description: Minion Agent - lightweight Linux observability agent and API server.
  Minion gathers host information and exposes an authenticated HTTPS API.
@@ -147,7 +147,6 @@ require_command() {
 
 require_command systemctl
 require_command openssl
-require_command curl
 require_command stat
 
 PACKAGED_UNIT="/lib/systemd/system/minion.service"
@@ -213,8 +212,7 @@ fi
 
 ready=false
 for _ in $(seq 1 30); do
-  if curl --silent --show-error --fail --insecure --max-time 2 \
-    https://127.0.0.1:9870/api/v1/health >/dev/null; then
+  if /usr/local/bin/minion package ready --config "$CONFIG" >/dev/null 2>&1; then
     ready=true
     break
   fi
