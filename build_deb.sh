@@ -26,7 +26,8 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
-Depends: libc6 (>= 2.28), iptables, fail2ban, openssl, sqlite3, curl
+Depends: libc6 (>= 2.28), openssl, sqlite3, curl
+Recommends: iptables, fail2ban
 Description: Minion Agent - lightweight Linux observability agent and API server.
  Minion gathers host information and exposes an authenticated HTTPS API.
 EOF
@@ -139,15 +140,13 @@ chmod 600 "$CONFIG"
 require_command() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "Minion installation is missing required command: $1" >&2
-    echo "Install the package with 'sudo apt install ./minion_<version>_amd64.deb' so dependencies are resolved automatically." >&2
+    echo "Install the missing runtime dependency and retry 'sudo dpkg --configure minion'." >&2
     exit 1
   }
 }
 
 require_command systemctl
 require_command openssl
-require_command iptables
-require_command fail2ban-client
 require_command sqlite3
 require_command curl
 require_command stat
