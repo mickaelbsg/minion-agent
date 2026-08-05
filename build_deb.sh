@@ -26,7 +26,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
-Depends: libc6 (>= 2.28), openssl, sqlite3, curl
+Depends: libc6 (>= 2.28), openssl, curl
 Recommends: iptables, fail2ban
 Description: Minion Agent - lightweight Linux observability agent and API server.
  Minion gathers host information and exposes an authenticated HTTPS API.
@@ -147,7 +147,6 @@ require_command() {
 
 require_command systemctl
 require_command openssl
-require_command sqlite3
 require_command curl
 require_command stat
 
@@ -164,9 +163,14 @@ systemctl daemon-reload
 systemctl reset-failed minion.service >/dev/null 2>&1 || true
 
 bootstrap_client_existed=false
-if [ -f "$DATA_DIR/minion.db" ] && \
-   [ "$(sqlite3 "$DATA_DIR/minion.db" "SELECT COUNT(*) FROM clients WHERE name = 'bootstrap';" 2>/dev/null || printf '0')" -gt 0 ]; then
+if /usr/local/bin/minion package client-exists --config "$CONFIG" --name bootstrap >/dev/null 2>&1; then
   bootstrap_client_existed=true
+else
+  client_lookup_rc=$?
+  if [ "$client_lookup_rc" -ne 3 ]; then
+    echo "Minion could not inspect the existing bootstrap client safely." >&2
+    exit "$client_lookup_rc"
+  fi
 fi
 
 umask 077
