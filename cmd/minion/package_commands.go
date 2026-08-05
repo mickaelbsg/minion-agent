@@ -16,6 +16,11 @@ import (
 
 const packageClientAbsentExitCode = 3
 
+const (
+	packageTLSCertPath = "/etc/minion/tls/minion.crt"
+	packageTLSKeyPath  = "/etc/minion/tls/minion.key"
+)
+
 func handlePackageCommands(args []string, configPath, clientName string) {
 	if !isRoot() {
 		log.Fatal("package commands require root privileges")
@@ -65,7 +70,7 @@ func packageReady(configPath string) error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	endpoint, err := packageReadinessEndpoint(cfg)
+	endpoint, err := packageReadinessEndpoint(cfg, packageTLSAssetsExist())
 	if err != nil {
 		return err
 	}
@@ -78,7 +83,16 @@ func packageReady(configPath string) error {
 	return packageReadyWithClient(client, endpoint)
 }
 
-func packageReadinessEndpoint(cfg *config.Config) (string, error) {
+func packageTLSAssetsExist() bool {
+	return packageRegularFileExists(packageTLSCertPath) && packageRegularFileExists(packageTLSKeyPath)
+}
+
+func packageRegularFileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
+}
+
+func packageReadinessEndpoint(cfg *config.Config, tlsAssetsExist bool) (string, error) {
 	host, port, err := net.SplitHostPort(cfg.API.Bind)
 	if err != nil {
 		return "", fmt.Errorf("invalid api.bind %q: %w", cfg.API.Bind, err)
@@ -90,7 +104,7 @@ func packageReadinessEndpoint(cfg *config.Config) (string, error) {
 		host = "::1"
 	}
 	scheme := "https"
-	if cfg.API.AllowInsecureHTTP {
+	if cfg.API.AllowInsecureHTTP && !tlsAssetsExist {
 		scheme = "http"
 	}
 	return scheme + "://" + net.JoinHostPort(host, port) + "/api/v1/health", nil
