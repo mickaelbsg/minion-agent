@@ -19,11 +19,11 @@ trap cleanup EXIT
 [[ -f "$PACKAGE" ]] || fail "package not found: $PACKAGE"
 [[ "$(ps -p 1 -o comm=)" == "systemd" ]] || fail "test host is not running systemd as PID 1"
 
-# The base agent must not depend on observability integrations or external inspection clients.
+# The base agent must not depend on observability integrations or external inspection/crypto clients.
 depends="$(dpkg-deb -f "$PACKAGE" Depends)"
 recommends="$(dpkg-deb -f "$PACKAGE" Recommends)"
-printf '%s\n' "$depends" | grep -Eq '(^|,)[[:space:]]*(iptables|fail2ban|sqlite3|curl)([[:space:](,]|$)' && \
-  fail "iptables, fail2ban, sqlite3 or curl is still a hard dependency"
+printf '%s\n' "$depends" | grep -Eq '(^|,)[[:space:]]*(iptables|fail2ban|sqlite3|curl|openssl)([[:space:](,]|$)' && \
+  fail "iptables, fail2ban, sqlite3, curl or openssl is still a hard dependency"
 printf '%s\n' "$recommends" | grep -Eq '(^|,)[[:space:]]*iptables([[:space:](,]|$)' || \
   fail "iptables is not declared as recommended"
 printf '%s\n' "$recommends" | grep -Eq '(^|,)[[:space:]]*fail2ban([[:space:](,]|$)' || \
@@ -31,25 +31,26 @@ printf '%s\n' "$recommends" | grep -Eq '(^|,)[[:space:]]*fail2ban([[:space:](,]|
 
 control_dir="$(mktemp -d)"
 dpkg-deb --control "$PACKAGE" "$control_dir"
-if grep -Eq 'require_command[[:space:]]+(iptables|fail2ban-client|sqlite3|curl)|sqlite3[[:space:]].*SELECT|(^|[[:space:]])curl([[:space:]]|$)' "$control_dir/postinst"; then
+if grep -Eq 'require_command[[:space:]]+(iptables|fail2ban-client|sqlite3|curl|openssl)|sqlite3[[:space:]].*SELECT|(^|[[:space:]])(curl|openssl)([[:space:]]|$)' "$control_dir/postinst"; then
   rm -rf "$control_dir"
-  fail "postinst still depends on optional commands, curl or direct SQLite shell queries"
+  fail "postinst still depends on optional commands, external clients or direct SQLite shell queries"
 fi
 rm -rf "$control_dir"
 
 cleanup
 
-# Remove optional packages and external inspection clients so the test cannot pass because of the runner image.
-sudo apt-get remove -y fail2ban iptables sqlite3 curl >/dev/null 2>&1 || true
+# Remove optional packages and external clients so the test cannot pass because of the runner image.
+sudo apt-get remove -y fail2ban iptables sqlite3 curl openssl >/dev/null 2>&1 || true
 command -v fail2ban-client >/dev/null 2>&1 && fail "fail2ban-client is still available"
 command -v iptables >/dev/null 2>&1 && fail "iptables is still available"
 command -v sqlite3 >/dev/null 2>&1 && fail "sqlite3 CLI is still available"
 command -v curl >/dev/null 2>&1 && fail "curl is still available"
+command -v openssl >/dev/null 2>&1 && fail "openssl is still available"
 
 install_output="$(mktemp)"
 if ! sudo DEBIAN_FRONTEND=noninteractive dpkg -i "$PACKAGE" >"$install_output" 2>&1; then
   rm -f "$install_output"
-  fail "dpkg -i failed without optional integrations, sqlite3 CLI or curl; output suppressed"
+  fail "dpkg -i failed without optional integrations, sqlite3 CLI, curl or openssl; output suppressed"
 fi
 if grep -Eq '(^|[[:space:]])API Key:|minion_sk_' "$install_output"; then
   rm -f "$install_output"
@@ -75,4 +76,4 @@ sudo /usr/local/bin/minion package client-exists \
 
 trap - EXIT
 cleanup
-echo "Minimal Debian installation without iptables, Fail2Ban, sqlite3 CLI or curl validated successfully."
+echo "Minimal Debian installation without iptables, Fail2Ban, sqlite3 CLI, curl or openssl validated successfully."
