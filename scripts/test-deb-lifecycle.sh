@@ -134,6 +134,15 @@ api_key="$(printf '%s\n' "$pair_output" | sed -n 's/^API Key: //p' | head -n 1)"
 unset pair_output
 sudo test ! -e "$BOOTSTRAP" || fail "bootstrap credential file was not removed after pairing"
 
+# Reproduce the supported post-pairing state: the temporary bootstrap client is
+# replaced by the long-lived Automation client. Upgrade, rollback, removal and
+# reinstall must preserve this state without recreating bootstrap credentials.
+sudo sqlite3 "$DB" "UPDATE clients SET name = 'automation' WHERE name = 'bootstrap';"
+[[ "$(sudo sqlite3 "$DB" "SELECT COUNT(*) FROM clients WHERE name = 'bootstrap';")" == "0" ]] || \
+  fail "bootstrap client still exists after lifecycle transition"
+[[ "$(sudo sqlite3 "$DB" "SELECT COUNT(*) FROM clients WHERE name = 'automation';")" == "1" ]] || \
+  fail "automation client was not persisted for lifecycle validation"
+
 response="$(curl --silent --show-error --fail --insecure \
   -H "Authorization: Bearer $api_key" \
   https://127.0.0.1:9870/api/v1/agent)"
@@ -148,6 +157,10 @@ cert_hash="$(sudo sha256sum "$CERT" | awk '{print $1}')"
 key_hash="$(sudo sha256sum "$KEY" | awk '{print $1}')"
 clients_before="$(client_fingerprint)"
 [[ -n "$clients_before" ]] || fail "no persisted API client found before package transition"
+printf '%s\n' "$clients_before" | grep -q '^automation|' || fail "automation client missing before package transition"
+if printf '%s\n' "$clients_before" | grep -q '^bootstrap|'; then
+  fail "bootstrap client unexpectedly present before package transition"
+fi
 
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$UPGRADE_PACKAGE"
 [[ "$(dpkg-query -W -f='${Version}' minion)" == "$upgrade_version" ]] || fail "package was not upgraded to $upgrade_version"
