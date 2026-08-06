@@ -26,7 +26,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Mickael Bergson <mickael@example.com>
-Depends: libc6 (>= 2.28), openssl
+Depends: libc6 (>= 2.28)
 Recommends: iptables, fail2ban
 Description: Minion Agent - lightweight Linux observability agent and API server.
  Minion gathers host information and exposes an authenticated HTTPS API.
@@ -146,7 +146,6 @@ require_command() {
 }
 
 require_command systemctl
-require_command openssl
 require_command stat
 
 PACKAGED_UNIT="/lib/systemd/system/minion.service"
@@ -173,6 +172,10 @@ else
 fi
 
 umask 077
+if ! /usr/local/bin/minion package ensure-tls --config "$CONFIG"; then
+  echo "Minion TLS bootstrap failed; package configuration was not completed." >&2
+  exit 1
+fi
 if ! /usr/local/bin/minion setup --config "$CONFIG" --name bootstrap --ips 127.0.0.1/32; then
   echo "Minion bootstrap failed; package configuration was not completed." >&2
   exit 1
