@@ -99,6 +99,33 @@ sudo minion client create --name automation --ips <AUTOMATION_IP/32>
 
 Clientes autenticados precisam de API key válida, cliente ativo e IP/CIDR autorizado. Não procure a API key em logs: somente o hash é persistido.
 
+## Upgrade ou reinstalação falha após remover o cliente bootstrap
+
+Sintoma: o host já possui um cliente válido, como `automation`, o arquivo `/var/lib/minion/bootstrap-credentials.txt` já foi consumido e o cliente `bootstrap` foi removido. Mesmo assim, upgrade ou reinstalação do `.deb` falha no `postinst` como se o estado de autenticação ainda não estivesse inicializado.
+
+Causa: versões antigas verificavam literalmente a existência do cliente chamado `bootstrap`. Essa checagem não representava o estado real do banco: o `minion setup` só deve criar bootstrap quando não existe cliente persistido algum.
+
+Diagnóstico:
+
+```bash
+sudo minion client list --config /etc/minion/config.json
+sudo test -e /var/lib/minion/bootstrap-credentials.txt && echo presente || echo consumido
+sudo sqlite3 /opt/minion/minion.db 'SELECT name, enabled FROM clients ORDER BY name;'
+```
+
+Correção: use uma versão em que o probe do pacote considere o estado de clientes inicializado quando existir qualquer cliente persistido. Não recrie manualmente o cliente `bootstrap`, não altere hashes no SQLite e não gere nova API key apenas para concluir o upgrade.
+
+Verificação:
+
+```bash
+sudo apt install ./minion_<versao>_amd64.deb
+sudo systemctl is-active minion.service
+sudo minion client list --config /etc/minion/config.json
+sudo test ! -e /var/lib/minion/bootstrap-credentials.txt
+```
+
+O resultado esperado é serviço `active`, clientes existentes preservados, nenhum novo arquivo bootstrap e nenhuma nova API key publicada. Consultas administrativas por nomes diferentes de `bootstrap` continuam sendo correspondências exatas.
+
 ## Falha ao criar, rotacionar ou revogar cliente por falta de entropia
 
 Sintoma: comandos administrativos de credenciais falham com erro semelhante a `failed to hash API key`, `failed to hash revocation secret` ou `generate Argon2id salt`. Nenhuma API key nova é criada e o cliente existente permanece inalterado.
