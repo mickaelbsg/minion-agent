@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"minion/internal/admin"
 	"minion/internal/config"
@@ -11,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPackageClientExists(t *testing.T) {
@@ -57,6 +61,142 @@ func TestPackageClientExists(t *testing.T) {
 	if exists {
 		t.Fatal("unexpected missing client")
 	}
+}
+
+func TestPackageEnsureTLSCreatesValidSecurePair(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "tls")
+	certPath := filepath.Join(dir, "minion.crt")
+	keyPath := filepath.Join(dir, "minion.key")
+	now := time.Date(2026, 8, 6, 0, 0, 0, 0, time.UTC)
+
+	created, err := packageEnsureTLS(certPath, keyPath, now)
+	if err != nil {
+		t.Fatalf("ensure TLS: %v", err)
+	}
+	if !created {
+		t.Fatal("expected TLS pair to be created")
+	}
+	if _, err := tls.LoadX509KeyPair(certPath, keyPath); err != nil {
+		t.Fatalf("load generated pair: %v", err)
+	}
+	if mode := fileMode(t, keyPath); mode != 0o600 {
+		t.Fatalf("private key mode = %o, expected 600", mode)
+	}
+	if mode := fileMode(t, certPath); mode != 0o644 {
+		t.Fatalf("certificate mode = %o, expected 644", mode)
+	}
+	if mode := fileMode(t, dir); mode != 0o700 {
+		t.Fatalf("TLS directory mode = %o, expected 700", mode)
+	}
+
+	certPEM, err := os.ReadFile(certPath)
+	if err != nil {
+		t.Fatalf("read certificate: %v", err)
+	}
+	block, _ := pem.Decode(certPEM)
+	if block == nil {
+		t.Fatal("generated certificate is not PEM")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("parse certificate: %v", err)
+	}
+	if cert.Subject.CommonName != "minion" {
+		t.Fatalf("unexpected common name %q", cert.Subject.CommonName)
+	}
+	if cert.NotAfter.Sub(cert.NotBefore) < 364*24*time.Hour {
+		t.Fatalf("unexpected certificate validity: %s", cert.NotAfter.Sub(cert.NotBefore))
+	}
+}
+
+func TestPackageEnsureTLSPreservesExistingPair(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "tls")
+	certPath := filepath.Join(dir, "minion.crt")
+	keyPath := filepath.Join(dir, "minion.key")
+	created, err := packageEnsureTLS(certPath, keyPath, time.Now())
+	if err != nil || !created {
+		t.Fatalf("initial ensure TLS: created=%v err=%v", created, err)
+	}
+	certBefore, _ := os.ReadFile(certPath)
+	keyBefore, _ := os.ReadFile(keyPath)
+
+	created, err = packageEnsureTLS(certPath, keyPath, time.Now().Add(24*time.Hour))
+	if err != nil {
+		t.Fatalf("preserve TLS: %v", err)
+	}
+	if created {
+		t.Fatal("existing TLS pair was unexpectedly regenerated")
+	}
+	certAfter, _ := os.ReadFile(certPath)
+	keyAfter, _ := os.ReadFile(keyPath)
+	if string(certAfter) != string(certBefore) || string(keyAfter) != string(keyBefore) {
+		t.Fatal("existing TLS material changed")
+	}
+}
+
+func TestPackageEnsureTLSRejectsIncompletePair(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "tls")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	certPath := filepath.Join(dir, "minion.crt")
+	keyPath := filepath.Join(dir, "minion.key")
+	original := []byte("do-not-overwrite")
+	if err := os.WriteFile(keyPath, original, 0o600); err != nil {
+		t.Fatalf("write partial key: %v", err)
+	}
+
+	created, err := packageEnsureTLS(certPath, keyPath, time.Now())
+	if err == nil || !strings.Contains(err.Error(), "incomplete TLS pair") {
+		t.Fatalf("expected incomplete pair error, got created=%v err=%v", created, err)
+	}
+	keyAfter, readErr := os.ReadFile(keyPath)
+	if readErr != nil {
+		t.Fatalf("read preserved key: %v", readErr)
+	}
+	if string(keyAfter) != string(original) {
+		t.Fatal("partial existing key was overwritten")
+	}
+	if _, statErr := os.Stat(certPath); !os.IsNotExist(statErr) {
+		t.Fatalf("certificate unexpectedly created: %v", statErr)
+	}
+}
+
+func TestPackageEnsureTLSRejectsSymlink(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "tls")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	target := filepath.Join(dir, "target")
+	if err := os.WriteFile(target, []byte("target"), 0o600); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	keyPath := filepath.Join(dir, "minion.key")
+	if err := os.Symlink(target, keyPath); err != nil {
+		t.Fatalf("symlink: %v", err)
+	}
+
+	_, err := packageEnsureTLS(filepath.Join(dir, "minion.crt"), keyPath, time.Now())
+	if err == nil || !strings.Contains(err.Error(), "unsafe TLS path") {
+		t.Fatalf("expected unsafe path error, got %v", err)
+	}
+}
+
+func fileMode(t *testing.T, path string) os.FileMode {
+	t.Helper()
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat %s: %v", path, err)
+	}
+	return info.Mode().Perm()
 }
 
 func TestPackageReadinessEndpoint(t *testing.T) {
