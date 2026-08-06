@@ -49,5 +49,6 @@
 ## Skills And Troubleshooting
 
 - Before starting any task, check whether an available skill matches the work; load and follow the applicable skill instead of improvising a parallel workflow.
+- Before starting any task, read the relevant files under `docs/memory/` (`contexto.md`, `infos.md`, `decisions.md`, and `troubleshooting.md`) so prior project knowledge is reused instead of rediscovered.
 - Always update `docs/troubleshooting.md` when diagnosing or fixing a reproducible problem. Record the symptom, root cause, correction, diagnostic commands, and verification result so it becomes the project's operational solution base.
-- Record durable technical lessons in `docs/memory/` without secrets, transient logs, or unverified assumptions.
+- After completing work, update the appropriate file under `docs/memory/` with durable technical lessons, decisions, context, or stable information. Do not record secrets, transient logs, or unverified assumptions.

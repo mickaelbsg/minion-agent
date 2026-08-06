@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Format Go code | `gofmt -w .` |
 | Tidy modules | `go mod tidy` |
 | Build Debian package | `./build_deb.sh` |
-| Install locally | `sudo ./install.sh` or `sudo ./install_minion.sh` |
+| Install locally | `sudo ./install.sh` |
 | Run service | `sudo systemctl start minion` |
 | Enable service on boot | `sudo systemctl enable minion` |
 | View service logs | `journalctl -u minion -f` |
@@ -113,7 +113,7 @@ Use these paths rather than hand-editing config JSON or stored client rows where
 
 ## Packaging / Installation
 
-The `.deb` package is the official product installation path. `build_deb.sh`, `install.sh`, and `install_minion.sh` currently support package or development workflows, but manual scripts must not remain competing customer installation paths.
+The `.deb` package is the official product installation path. `build_deb.sh` and `install.sh` support package or development workflows, but manual scripts must not remain competing customer installation paths.
 
 The final package must preserve configuration, database, TLS assets, identity, and credentials during reinstall or upgrade. It must bootstrap securely, start and validate the service, and provide clear next steps without exposing secrets in logs.
 
