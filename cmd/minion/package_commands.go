@@ -35,7 +35,7 @@ func handlePackageCommands(args []string, configPath, clientName string) {
 		if strings.TrimSpace(clientName) == "" {
 			log.Fatal("usage: sudo minion package client-exists --name <client>")
 		}
-		exists, err := packageClientExists(admin.NewService(configPath), clientName)
+		exists, err := packageClientStateSatisfiesInstall(admin.NewService(configPath), clientName)
 		if err != nil {
 			log.Fatalf("failed to inspect package client state: %v", err)
 		}
@@ -74,6 +74,23 @@ func packageClientExists(service *admin.Service, name string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+// packageClientStateSatisfiesInstall reports whether package installation may
+// preserve the current client state without generating a new bootstrap secret.
+// For the bootstrap probe used by postinst, any persisted client is sufficient:
+// Setup only creates bootstrap credentials when the database is empty.
+func packageClientStateSatisfiesInstall(service *admin.Service, name string) (bool, error) {
+	clients, err := service.ListClients()
+	if err != nil {
+		return false, err
+	}
+	for _, client := range clients {
+		if client.Name == name {
+			return true, nil
+		}
+	}
+	return name == "bootstrap" && len(clients) > 0, nil
 }
 
 func packageEnsureTLS(certPath, keyPath string, now time.Time) (bool, error) {
