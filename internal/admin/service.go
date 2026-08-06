@@ -8,10 +8,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"minion/internal/config"
 	"minion/internal/security"
 	"minion/internal/storage"
+	"minion/internal/tlsbootstrap"
 )
 
 const (
@@ -212,20 +214,11 @@ func (s *Service) Setup(opts SetupOptions) (result SetupResult, resultErr error)
 		ClientIPs:   opts.ClientIPs,
 	}
 
-	if err := os.MkdirAll(s.TLSDir, 0o755); err != nil {
-		return SetupResult{}, fmt.Errorf("failed to create TLS directory: %w", err)
+	created, err := tlsbootstrap.Ensure(result.TLSCertPath, result.TLSKeyPath, time.Now())
+	if err != nil {
+		return SetupResult{}, fmt.Errorf("failed to ensure TLS assets: %w", err)
 	}
-
-	if _, err := os.Stat(result.TLSCertPath); errors.Is(err, os.ErrNotExist) {
-		if _, err := s.CommandRunner.Run(
-			"openssl", "req", "-newkey", "rsa:2048", "-nodes",
-			"-keyout", result.TLSKeyPath, "-x509", "-days", "365", "-out", result.TLSCertPath,
-			"-subj", "/CN=minion",
-		); err != nil {
-			return SetupResult{}, fmt.Errorf("failed to generate TLS cert: %w", err)
-		}
-		result.CertGenerated = true
-	}
+	result.CertGenerated = created
 
 	cfg, err := config.Load(s.ConfigPath)
 	if err != nil {

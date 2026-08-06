@@ -18,6 +18,35 @@ sudo journalctl -u minion.service -n 100 --no-pager
 sudo dpkg-query -W -f='${Status} ${Version}\n' minion
 ```
 
+## Instalação sem OpenSSL
+
+Sintoma: uma versão antiga do instalador ou do comando `minion setup` falha com `openssl: command not found`, mesmo que configuração, banco e diretórios possam ser criados.
+
+Causa: o fluxo legado delegava a criação do certificado bootstrap ao executável externo OpenSSL. O pacote atual gera e valida o par TLS dentro do próprio binário usando a biblioteca criptográfica do Go; `openssl` não deve aparecer em `Depends`, no `postinst` nem como requisito de recuperação.
+
+Diagnóstico:
+
+```bash
+command -v openssl || true
+dpkg-deb -f ./minion_<versao>_amd64.deb Depends
+mkdir -p /tmp/minion-control
+dpkg-deb --control ./minion_<versao>_amd64.deb /tmp/minion-control
+grep -nE 'openssl|require_command' /tmp/minion-control/postinst || true
+```
+
+Correção: instale uma versão que utilize `minion package ensure-tls` no `postinst` e geração TLS nativa no `minion setup`. Não crie certificado ou chave manualmente para contornar estado parcial. Se apenas um dos arquivos existir, preserve-o para análise e corrija a origem antes de repetir a instalação.
+
+Verificação esperada em host descartável:
+
+```bash
+sudo dpkg -i ./minion_<versao>_amd64.deb
+sudo systemctl is-active minion.service
+sudo stat -c '%a %U:%G %n' /etc/minion/tls /etc/minion/tls/minion.crt /etc/minion/tls/minion.key
+sudo minion package ready --config /etc/minion/config.json
+```
+
+O resultado esperado é serviço `active`, diretório TLS `0700`, chave privada `0600`, certificado regular válido e readiness concluído sem executar OpenSSL. Upgrades e reinstalações devem preservar o par TLS existente byte a byte.
+
 ## Serviço ativo, API indisponível
 
 O instalador valida `/api/v1/health` antes de concluir. Depois da instalação, confirme:
